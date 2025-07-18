@@ -34,6 +34,8 @@ Upload an **HTML file** exported from **Football Manager** that includes a table
 
 All uploaded players are assumed to be **22 years old or younger**.
 
+The view can be found in the `fmdatalab_moneyball_player_search_view.fmf` file, which needs to be imported in Football Manager. Then select the first row and press ctrl-a to select all players, then press ctrl-p and choose 'Web Page' to export the data as HTML.
+
 ---
 
 ## 🧶 How the Moneyball Score Works
