@@ -463,7 +463,7 @@ def create_sidebar_filters(df):
         "Min Age", min_value=15, max_value=25, value=age_min
     )
     st.session_state['age_upper'] = st.sidebar.number_input(
-        "Max Age", min_value=15, max_value=25, value=age_max
+        "Max Age", min_value=15, max_value=45, value=age_max
     )
 
     # Value filters
@@ -490,6 +490,13 @@ def create_sidebar_filters(df):
         st.session_state['selected_leagues'] = st.sidebar.multiselect(
             "Filter by League/Division", options=league_options
         )
+
+    # Apply style tag filter if selected
+    selected_tags = st.sidebar.multiselect(
+        "Filter by Style Tags", 
+        options=df['Style Tags'].unique()
+    )
+    st.session_state['selected_tags'] = selected_tags
 
     st.sidebar.markdown("---")
     st.session_state['show_percentiles'] = st.sidebar.checkbox(
@@ -518,6 +525,11 @@ def apply_filters(df):
     selected_leagues = st.session_state.get('selected_leagues', [])
     if selected_leagues and 'Division' in df.columns:
         df = df[df['Division'].isin(selected_leagues)]
+
+    # Style tag filter
+    selected_tags = st.session_state.get('selected_tags', [])
+    if selected_tags and 'Style Tags' in df.columns:
+        df = df[df['Style Tags'].isin(selected_tags)]
     
     return df
 
@@ -580,14 +592,6 @@ def process_player_data(df, position, metrics, normalized_weights, value_impact,
         lambda row: assign_player_tags(row, position, metrics), 
         axis=1
     )
-    
-    # Apply style tag filter if selected
-    selected_tags = st.sidebar.multiselect(
-        "Filter by Style Tags", 
-        options=df['Style Tags'].unique()
-    )
-    if selected_tags:
-        df = df[df['Style Tags'].isin(selected_tags)]
     
     # Store benchmarks for display
     st.session_state['benchmarks'] = benchmarks
