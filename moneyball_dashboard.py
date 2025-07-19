@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 import streamlit as st
 import plotly.express as px
@@ -5,24 +6,30 @@ import plotly.graph_objects as go
 
 # --- Position-specific metrics mapping ---
 POSITION_METRICS = {
-    'GK': ['Sv %', 'xSv %', 'Shutouts', 'Pens Saved', 'Conc', 'Av Rat'],
-    'CB': ['Tck/90', 'Hdr %', 'Int/90', 'Clear', 'Conc', 'K Tck/90', 'Poss Won/90', 'Ps C/90', 'Av Rat'],
-    'RB/LB': ['Tck/90', 'Drb/90', 'Asts/90', 'Cr A', 'Cr C', 'Pas %', 'K Tck/90', 'Poss Won/90', 'Av Rat'],
-    'RWB/LWB': ['Tck/90', 'Drb/90', 'Cr A', 'Cr C', 'Pas %', 'Asts/90', 'K Tck/90', 'Poss Won/90', 'Av Rat'],
-    'CDM': ['Tck/90', 'Int/90', 'Pas %', 'Tck R', 'K Tck/90', 'Poss Won/90', 'Ps C/90', 'Asts/90', 'Av Rat'],
-    'CM': ['Pas %', 'Asts/90', 'K Ps/90', 'Drb/90', 'Poss Won/90', 'Tck/90', 'Int/90', 'Cr A', 'Cr C', 'Av Rat'],
-    'CAM': ['Asts/90', 'Gls/90', 'xG', 'Cr A', 'K Ps/90', 'Drb/90', 'Pas %', 'Cr C', 'Poss Won/90', 'Av Rat'],
-    'LM/RM': ['Asts/90', 'Drb/90', 'Cr A', 'Ps C/90', 'xG', 'Gls/90', 'K Ps/90', 'Pas %', 'Cr C', 'Poss Won/90', 'Av Rat'],
-    'RW/LW': ['Gls/90', 'Cr A', 'Drb/90', 'xG', 'Shot/90', 'K Ps/90', 'Pas %', 'Cr C', 'Asts/90', 'Poss Won/90', 'Av Rat'],
-    'ST': ['Gls/90', 'xG', 'Shots', 'ShT %', 'PoM', 'Asts/90', 'K Ps/90', 'Drb/90', 'Pas %', 'Cr C', 'Poss Won/90', 'Av Rat']
+    'GK': {'Sv %': 0.2, 'xSv %': 0.2, 'Shutouts': 0.15, 'Pens Saved': 0.1, 'Conc': 0.15, 'Av Rat': 0.2},
+    'CB': {'Tck/90': 0.15, 'Hdr %': 0.1, 'Int/90': 0.1, 'Clear': 0.1, 'Conc': 0.1, 'K Tck/90': 0.1, 'Poss Won/90': 0.1, 'Ps C/90': 0.1, 'Av Rat': 0.15},
+    'RB/LB': {'Tck/90': 0.15, 'Drb/90': 0.1, 'Asts/90': 0.1, 'Cr A': 0.1, 'Cr C': 0.1, 'Pas %': 0.1, 'K Tck/90': 0.1, 'Poss Won/90': 0.1, 'Av Rat': 0.15},
+    'RWB/LWB': {'Tck/90': 0.1, 'Drb/90': 0.1, 'Cr A': 0.1, 'Cr C': 0.1, 'Pas %': 0.1, 'Asts/90': 0.1, 'K Tck/90': 0.1, 'Poss Won/90': 0.1, 'Av Rat': 0.2},
+    'CDM': {'Tck/90': 0.1, 'Int/90': 0.1, 'Pas %': 0.1, 'Tck R': 0.1, 'K Tck/90': 0.1, 'Poss Won/90': 0.1, 'Ps C/90': 0.1, 'Asts/90': 0.1, 'Av Rat': 0.2},
+    'CM': {'Pas %': 0.1, 'Asts/90': 0.1, 'K Ps/90': 0.1, 'Drb/90': 0.1, 'Poss Won/90': 0.1, 'Tck/90': 0.1, 'Int/90': 0.1, 'Cr A': 0.1, 'Cr C': 0.1, 'Av Rat': 0.2},
+    'CAM': {'Asts/90': 0.15, 'Gls/90': 0.1, 'xG': 0.1, 'Cr A': 0.1, 'K Ps/90': 0.1, 'Drb/90': 0.1, 'Pas %': 0.1, 'Cr C': 0.1, 'Poss Won/90': 0.05, 'Av Rat': 0.2},
+    'LM/RM': {'Asts/90': 0.1, 'Drb/90': 0.1, 'Cr A': 0.1, 'Ps C/90': 0.1, 'xG': 0.1, 'Gls/90': 0.1, 'K Ps/90': 0.1, 'Pas %': 0.1, 'Cr C': 0.05, 'Poss Won/90': 0.05, 'Av Rat': 0.2},
+    'RW/LW': {'Gls/90': 0.15, 'Cr A': 0.1, 'Drb/90': 0.1, 'xG': 0.1, 'Shot/90': 0.1, 'K Ps/90': 0.1, 'Pas %': 0.05, 'Cr C': 0.05, 'Asts/90': 0.1, 'Poss Won/90': 0.05, 'Av Rat': 0.1},
+    'ST': {'Gls/90': 0.2, 'xG': 0.15, 'Shots': 0.1, 'ShT %': 0.1, 'PoM': 0.1, 'Asts/90': 0.1, 'K Ps/90': 0.05, 'Drb/90': 0.05, 'Pas %': 0.05, 'Cr C': 0.05, 'Poss Won/90': 0.05, 'Av Rat': 0.1}
 }
 
 # --- Helper function to parse transfer value ---
 def extract_value(val):
     if isinstance(val, str) and "$" in val:
-        parts = val.replace("$", "").replace("M", "").replace("K", "").replace(",", "").split(" - ")
         try:
-            return (float(parts[0]) + float(parts[1])) / 2 if len(parts) == 2 else float(parts[0])
+            parts = re.findall(r"\$([\d\.]+)([MK])", val)
+            if not parts:
+                return None
+            values = []
+            for num, suffix in parts:
+                multiplier = 1_000_000 if suffix == 'M' else 1_000
+                values.append(float(num) * multiplier)
+            return sum(values) / len(values) if values else None
         except:
             return None
     return None
@@ -72,16 +79,7 @@ LEAGUE_COEFFICIENTS = {
 }
 
 # --- Moneyball score computation ---
-def compute_moneyball_score(row, metrics):
-    perf_score = 0
-    weights = [1 / len(metrics)] * len(metrics)
-    for metric, w in zip(metrics, weights):
-        try:
-            val = float(str(row[metric]).replace('%', '').replace(',', '').strip())
-            perf_score += w * val
-        except:
-            continue
-
+def compute_moneyball_score(row, metric_weights):
     try:
         value = extract_value(row['Transfer Value'])
         if not value:
@@ -89,15 +87,41 @@ def compute_moneyball_score(row, metrics):
     except:
         return 0
 
-    coeff = 1.0
+    perf_score = 0
+    total_weight = sum(metric_weights.values())
+    for metric, weight in metric_weights.items():
+        try:
+            raw_val = str(row[metric]).strip()
+            if raw_val == '-' or raw_val == '' or raw_val.lower() == 'nan':
+                continue
+            if '%' in raw_val:
+                val = float(raw_val.replace('%', '').replace(',', '')) / 100  # normalize percentage
+            else:
+                val = float(raw_val.replace(',', ''))
+            perf_score += weight * val
+        except:
+            continue
 
+    coeff = 1.0
     if 'Division' in row and isinstance(row['Division'], str):
         for league, factor in LEAGUE_COEFFICIENTS.items():
             if league.lower() in row['Division'].lower():
                 coeff = factor
                 break
 
-    return (perf_score * coeff) / (value + 1)
+    age_penalty = 1 + (row['Age'] - 18) * 0.02 if 'Age' in row else 1
+
+    mins_raw = str(row['Mins']).strip() if 'Mins' in row else '0'
+    try:
+        minutes_played = float(mins_raw.replace(',', '')) if mins_raw != '-' else 0
+    except:
+        minutes_played = 0
+
+    reliability_bonus = min(1.0, minutes_played / 2000)
+
+    value_factor = 1 + (value / 1_000_000) * 0.1  # reduced impact of value
+    score = ((perf_score / total_weight) * coeff * reliability_bonus) / (value_factor * age_penalty)
+    return round(score, 3)
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Moneyball Football Dashboard", layout="wide")
@@ -121,36 +145,40 @@ if uploaded_file:
     # --- Position Detection by frequency ---
     fm_position_map = {
         'GK': ['GK'],
-        'CB': ['D(C)'],
-        'RB/LB': ['D(R)', 'D(L)'],
-        'RWB/LWB': ['WB(R)', 'WB(L)'],
-        'CDM': ['DM'],
-        'CM': ['M(C)'],
-        'CAM': ['AM(C)'],
-        'LM/RM': ['M(R)', 'M(L)'],
-        'RW/LW': ['AM(R)', 'AM(L)'],
-        'ST': ['ST(C)']
+        'CB': ['CB', 'DC', 'DCL', 'DCR'],
+        'RB': ['RB', 'LB'],
+        'RWB/ LWB': ['RWB', 'LWB'],
+        'CDM': ['CDM', 'DMC'],
+        'CM': ['CM', 'MC', 'DMC/CM'],
+        'CAM': ['CAM', 'AMC'],
+        'LM/RM': ['LM', 'LW', 'RM', 'RW'],
+        'RW/LW': ['RW', 'RWM', 'LW', 'LWM'],
+        'ST': ['ST', 'CF']
     }
-    position_counts = {key: 0 for key in fm_position_map.keys()}
-    if 'Position' in df.columns:
-        for pos_str in df['Position'].astype(str):
-            for key, fm_labels in fm_position_map.items():
-                for label in fm_labels:
-                    if label.lower() in pos_str.lower():
-                        position_counts[key] += 1
-    detected_position = max(position_counts, key=position_counts.get) if any(position_counts.values()) else None
+    def detect_dominant_position_from_filename(filename):
+        first_word = filename.split()[0].upper()
+        for position, aliases in fm_position_map.items():
+            if first_word in aliases:
+                return position
+        return None
+    
+    detected_position = detect_dominant_position_from_filename(uploaded_file.name) if uploaded_file.name else None
+
 
     # --- Sidebar Filters ---
     st.sidebar.header("Filters")
     age_min, age_max = int(df['Age'].min()), int(df['Age'].max())
-    age_range = st.sidebar.slider("Select Age Range", 15, 25, (age_min, age_max))
+    age_lower = st.sidebar.number_input("Min Age", min_value=15, max_value=25, value=age_min)
+    age_upper = st.sidebar.number_input("Max Age", min_value=15, max_value=25, value=age_max)
 
-    value_min = int(df['Numeric Value'].min()) if df['Numeric Value'].notna().any() else 0
-    value_max = int(df['Numeric Value'].max()) if df['Numeric Value'].notna().any() else 100
-    value_range = st.sidebar.slider("Select Transfer Value Range (in millions)", 0, 100, (0, 100))
+    value_min = float(df['Numeric Value'].min() / 1_000_000) if df['Numeric Value'].notna().any() else 0
+    value_max = float(df['Numeric Value'].max() / 1_000_000) if df['Numeric Value'].notna().any() else 100
+    val_lower = st.sidebar.number_input("Min Transfer Value (Millions)", min_value=0.0, max_value=500.0, value=1.5, step=0.5)
+    val_upper = st.sidebar.number_input("Max Transfer Value (Millions)", min_value=0.0, max_value=500.0, value=value_max, step=0.5)
 
-    df = df[(df['Age'] >= age_range[0]) & (df['Age'] <= age_range[1])]
-    df = df[df['Numeric Value'].between(value_range[0], value_range[1], inclusive='both')]
+    # Apply filters (convert inputs back to base unit)
+    df = df[(df['Age'] >= age_lower) & (df['Age'] <= age_upper)]
+    df = df[df['Numeric Value'].between(val_lower * 1_000_000, val_upper * 1_000_000, inclusive='both')]
 
     position = st.selectbox("Select Position", list(POSITION_METRICS.keys()), index=list(POSITION_METRICS.keys()).index(detected_position) if detected_position else 0)
     metrics = POSITION_METRICS[position]
@@ -162,7 +190,7 @@ if uploaded_file:
     top_n = st.slider("Number of top players to display", 5, 50, 10)
 
     available_cols = df.columns.tolist()
-    base_cols = [col for col in ['Name', 'Club', 'Division', 'Age', 'Salary', 'Transfer Value', 'Moneyball Score'] if col in available_cols]
+    base_cols = [col for col in ['Name', 'Club', 'Division', 'Age', 'Salary', 'Transfer Value', 'Apps', 'Moneyball Score'] if col in available_cols]
     metric_cols = [col for col in metrics if col in available_cols]
     display_cols = base_cols + metric_cols
 
@@ -170,13 +198,17 @@ if uploaded_file:
     st.dataframe(df[display_cols].head(top_n))
 
     st.subheader("Score Distribution")
-    fig = px.bar(df.head(top_n), x='Name', y='Moneyball Score', color='Club', title=f'Top {position} by Moneyball Score')
+    fig = px.bar(df.head(top_n), x='Name', y='Moneyball Score', color='Club', title=f'Top {position} by Moneyball Score',
+             labels={'Moneyball Score': 'Performance-to-Value Ratio'}, height=500)
+    fig.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig)
 
     st.subheader("Value for Money")
     scatter_df = df.dropna(subset=['Moneyball Score', 'Numeric Value'])
-    fig2 = px.scatter(scatter_df.head(50), x='Numeric Value', y='Moneyball Score', color='Age', hover_data=['Name'],
-                      title='Transfer Value vs. Performance')
+    fig2 = px.scatter(scatter_df.head(50), x='Numeric Value', y='Moneyball Score', color='Age', hover_data=['Name', 'Club', 'Division'],
+                  title='Transfer Value vs. Moneyball Score', labels={'Numeric Value': 'Transfer Value (M)', 'Moneyball Score': 'Performance-to-Value Ratio'})
+    fig2.update_traces(marker=dict(size=12, opacity=0.7))
+    fig2.update_layout(height=600)
     st.plotly_chart(fig2)
 
     st.subheader("Compare Players via Radar Chart")
