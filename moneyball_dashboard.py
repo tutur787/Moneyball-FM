@@ -153,6 +153,45 @@ def project_moneyball_score_at_age(row, target_age=25, metric_weights=None):
         return round(projected_score, 3)
     except:
         return 0
+    
+def assign_player_tags(row, position, metrics):
+    tags = []
+    
+    def val(metric):
+        try:
+            raw = str(row[metric]).replace('%', '').replace(',', '').strip()
+            return float(raw) if raw != '-' and raw else 0
+        except:
+            return 0
+
+    if position in ['CM', 'CAM', 'LM/RM', 'RW/LW']:
+        if val('Asts/90') > 0.3 or val('Cr A') > 1.0:
+            tags.append("Creator")
+        if val('Drb/90') > 2.0:
+            tags.append("Dribbler")
+        if val('Gls/90') > 0.3 or val('xG') > 3:
+            tags.append("Finisher")
+
+    if position in ['CDM', 'CB', 'RB/LB', 'RWB/LWB']:
+        if val('Tck/90') > 2.5 or val('K Tck/90') > 1.0:
+            tags.append("Ball-Winner")
+        if val('Int/90') > 2.0:
+            tags.append("Interceptor")
+        if val('Clear') > 50:
+            tags.append("Defender")
+
+    if position == 'ST':
+        if val('Gls/90') > 0.5:
+            tags.append("Poacher")
+        if val('ShT %') > 50:
+            tags.append("Clinical")
+        if val('Drb/90') > 1.5:
+            tags.append("Mobile Striker")
+    
+    if 'Av Rat' in metrics and val('Av Rat') >= 7.5:
+        tags.append("Performer")
+
+    return ", ".join(tags) if tags else "Balanced"
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Moneyball Football Dashboard", layout="wide")
@@ -207,6 +246,20 @@ if uploaded_file:
     val_lower = st.sidebar.number_input("Min Transfer Value (Millions)", min_value=0.0, max_value=500.0, value=1.5, step=0.5)
     val_upper = st.sidebar.number_input("Max Transfer Value (Millions)", min_value=0.0, max_value=500.0, value=value_max, step=0.5)
 
+    # --- Nationality Filter ---
+    if 'Nat' in df.columns:
+        nat_options = sorted(df['Nat'].dropna().unique())
+        selected_nations = st.sidebar.multiselect("Filter by Nationality", options=nat_options)
+        if selected_nations:
+            df = df[df['Nat'].isin(selected_nations)]
+
+    # --- League/Division Filter ---
+    if 'Division' in df.columns:
+        league_options = sorted(df['Division'].dropna().unique())
+        selected_leagues = st.sidebar.multiselect("Filter by League/Division", options=league_options)
+        if selected_leagues:
+            df = df[df['Division'].isin(selected_leagues)]
+
     st.sidebar.markdown("---")
     show_percentiles = st.sidebar.checkbox("Show Percentile Rankings", value=False)
 
@@ -217,6 +270,20 @@ if uploaded_file:
     # --- Displaying Data ---
     position = st.selectbox("Select Position", list(POSITION_METRICS.keys()), index=list(POSITION_METRICS.keys()).index(detected_position) if detected_position else 0)
     metrics = POSITION_METRICS[position]
+    # --- Compute positional benchmarks ---
+    positional_df = df.copy()
+    benchmarks = {}
+    for metric in metrics:
+        try:
+            positional_values = pd.to_numeric(positional_df[metric].replace('-', None), errors='coerce')
+            benchmarks[metric] = {
+                'mean': positional_values.mean(),
+                'median': positional_values.median(),
+                '80th': positional_values.quantile(0.80)
+            }
+        except:
+            benchmarks[metric] = {'mean': None, 'median': None, '80th': None}
+
     st.sidebar.markdown("### Adjust Metric Weights")
     with st.sidebar.expander(f"⚖️ Weights for {position}", expanded=False):
         weight_inputs = {}
@@ -261,11 +328,15 @@ if uploaded_file:
     df['Projected Score (25)'] = df.apply(
         lambda row: project_moneyball_score_at_age(row, target_age=25, metric_weights=metrics), axis=1
     )
+    df['Style Tags'] = df.apply(lambda row: assign_player_tags(row, position, metrics), axis=1)
+    selected_tags = st.sidebar.multiselect("Filter by Style Tags", options=df['Style Tags'].unique())
+    if selected_tags:
+        df = df[df['Style Tags'].isin(selected_tags)]
 
-    top_n = 10  # Always show top 10
+    top_n = 10
 
     available_cols = df.columns.tolist()
-    base_cols = [col for col in ['Name', 'Club', 'Division', 'Age', 'Salary', 'Transfer Value', 'Apps', 'Moneyball Score'] if col in available_cols]
+    base_cols = [col for col in ['Name', 'Club', 'Division', 'Age', 'Salary', 'Transfer Value', 'Apps', 'Moneyball Score', 'Style Tags'] if col in available_cols]
     metric_cols = [col for col in metrics if col in available_cols]
 
     if show_percentiles:
@@ -299,6 +370,15 @@ if uploaded_file:
         metric_cols = [col for col in metrics if col in df.columns]
         display_cols = base_cols + metric_cols
         st.dataframe(df[display_cols].head(top_n))
+
+    st.subheader(f"{position} Benchmarks")
+    bm_df = pd.DataFrame(benchmarks).T.rename(columns={
+        'mean': 'Mean',
+        'median': 'Median',
+        '80th': '80th Percentile'
+    }).dropna()
+
+    st.dataframe(bm_df.style.format("{:.2f}"))
 
     st.subheader("Value for Money")
     scatter_df = df.dropna(subset=['Moneyball Score', 'Numeric Value'])
