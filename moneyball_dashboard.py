@@ -411,7 +411,6 @@ def main():
         return
 
     # Initial data preparation
-    df = df[df['Age'] <= 22]  # Filter young players
     df['Numeric Value'] = df['Transfer Value'].apply(extract_value)
 
     # Auto-detect position from filename
@@ -468,7 +467,6 @@ def create_sidebar_filters(df):
     )
 
     # Value filters
-    value_min = float(df['Numeric Value'].min() / 1_000_000) if df['Numeric Value'].notna().any() else 0
     value_max = float(df['Numeric Value'].max() / 1_000_000) if df['Numeric Value'].notna().any() else 100
     st.session_state['val_lower'] = st.sidebar.number_input(
         "Min Transfer Value (Millions)", 
