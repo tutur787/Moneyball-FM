@@ -5,16 +5,16 @@ import plotly.graph_objects as go
 
 # --- Position-specific metrics mapping ---
 POSITION_METRICS = {
-    'GK': ['Sv %', 'xSv %', 'Shutouts', 'Pens Saved', 'Conc'],
-    'CB': ['Tck/90', 'Hdr %', 'Int/90', 'Clear', 'Conc'],
-    'RB/LB': ['Tck/90', 'Drb/90', 'Asts/90', 'Cr A', 'Cr C'],
-    'RWB/LWB': ['Tck/90', 'Drb/90', 'Cr A', 'Cr C', 'Pas %'],
-    'CDM': ['Tck/90', 'Int/90', 'Pas %', 'Tck R', 'K Tck/90', 'Poss Won/90', 'Ps C/90'],
-    'CM': ['Pas %', 'Asts/90', 'K Ps/90', 'Drb/90', 'Poss Won/90'],
-    'CAM': ['Asts/90', 'Gls/90', 'xG', 'Cr A', 'K Ps/90'],
-    'LM/RM': ['Asts/90', 'Drb/90', 'Cr A', 'Ps C/90', 'xG'],
-    'RW/LW': ['Gls/90', 'Cr A', 'Drb/90', 'xG', 'Shot/90'],
-    'ST': ['Gls/90', 'xG', 'Shots', 'ShT %', 'PoM']
+    'GK': ['Sv %', 'xSv %', 'Shutouts', 'Pens Saved', 'Conc', 'Av Rat'],
+    'CB': ['Tck/90', 'Hdr %', 'Int/90', 'Clear', 'Conc', 'K Tck/90', 'Poss Won/90', 'Ps C/90', 'Av Rat'],
+    'RB/LB': ['Tck/90', 'Drb/90', 'Asts/90', 'Cr A', 'Cr C', 'Pas %', 'K Tck/90', 'Poss Won/90', 'Av Rat'],
+    'RWB/LWB': ['Tck/90', 'Drb/90', 'Cr A', 'Cr C', 'Pas %', 'Asts/90', 'K Tck/90', 'Poss Won/90', 'Av Rat'],
+    'CDM': ['Tck/90', 'Int/90', 'Pas %', 'Tck R', 'K Tck/90', 'Poss Won/90', 'Ps C/90', 'Asts/90', 'Av Rat'],
+    'CM': ['Pas %', 'Asts/90', 'K Ps/90', 'Drb/90', 'Poss Won/90', 'Tck/90', 'Int/90', 'Cr A', 'Cr C', 'Av Rat'],
+    'CAM': ['Asts/90', 'Gls/90', 'xG', 'Cr A', 'K Ps/90', 'Drb/90', 'Pas %', 'Cr C', 'Poss Won/90', 'Av Rat'],
+    'LM/RM': ['Asts/90', 'Drb/90', 'Cr A', 'Ps C/90', 'xG', 'Gls/90', 'K Ps/90', 'Pas %', 'Cr C', 'Poss Won/90', 'Av Rat'],
+    'RW/LW': ['Gls/90', 'Cr A', 'Drb/90', 'xG', 'Shot/90', 'K Ps/90', 'Pas %', 'Cr C', 'Asts/90', 'Poss Won/90', 'Av Rat'],
+    'ST': ['Gls/90', 'xG', 'Shots', 'ShT %', 'PoM', 'Asts/90', 'K Ps/90', 'Drb/90', 'Pas %', 'Cr C', 'Poss Won/90', 'Av Rat']
 }
 
 # --- Helper function to parse transfer value ---
@@ -44,10 +44,10 @@ LEAGUE_COEFFICIENTS = {
     'Serie B': 0.860,
     '2. Bundesliga': 0.855,
     'Ligue 2': 0.850,
-    'Segunda División': 0.845,
+    'Segunda Divisi\u00f3n': 0.845,
     'MLS': 0.840,
     'Brazilian Serie A': 0.835,
-    'Argentine Primera División': 0.830,
+    'Argentine Primera Divisi\u00f3n': 0.830,
     'Swiss Super League': 0.825,
     'Austrian Bundesliga': 0.820,
     'Greek Super League': 0.815,
@@ -115,9 +115,10 @@ if uploaded_file:
         st.error(f"Failed to parse HTML file: {e}")
         st.stop()
 
-    df = df[df['Age'] <= 22]  # Limit to max 22 years old players
+    df = df[df['Age'] <= 22]  # Initial hard age limit
+    df['Numeric Value'] = df['Transfer Value'].apply(extract_value)
 
-    detected_position = None
+    # --- Position Detection by frequency ---
     fm_position_map = {
         'GK': ['GK'],
         'CB': ['D(C)'],
@@ -130,11 +131,27 @@ if uploaded_file:
         'RW/LW': ['AM(R)', 'AM(L)'],
         'ST': ['ST(C)']
     }
+    position_counts = {key: 0 for key in fm_position_map.keys()}
     if 'Position' in df.columns:
-        for key, fm_labels in fm_position_map.items():
-            if df['Position'].astype(str).str.contains('|'.join(fm_labels), case=False).any():
-                detected_position = key
-                break
+        for pos_str in df['Position'].astype(str):
+            for key, fm_labels in fm_position_map.items():
+                for label in fm_labels:
+                    if label.lower() in pos_str.lower():
+                        position_counts[key] += 1
+    detected_position = max(position_counts, key=position_counts.get) if any(position_counts.values()) else None
+
+    # --- Sidebar Filters ---
+    st.sidebar.header("Filters")
+    age_min, age_max = int(df['Age'].min()), int(df['Age'].max())
+    age_range = st.sidebar.slider("Select Age Range", 15, 25, (age_min, age_max))
+
+    value_min = int(df['Numeric Value'].min()) if df['Numeric Value'].notna().any() else 0
+    value_max = int(df['Numeric Value'].max()) if df['Numeric Value'].notna().any() else 100
+    value_range = st.sidebar.slider("Select Transfer Value Range (in millions)", 0, 100, (0, 100))
+
+    df = df[(df['Age'] >= age_range[0]) & (df['Age'] <= age_range[1])]
+    df = df[df['Numeric Value'].between(value_range[0], value_range[1], inclusive='both')]
+
     position = st.selectbox("Select Position", list(POSITION_METRICS.keys()), index=list(POSITION_METRICS.keys()).index(detected_position) if detected_position else 0)
     metrics = POSITION_METRICS[position]
     st.markdown(f"**Evaluating {position}** using: {', '.join(metrics)}")
@@ -142,12 +159,13 @@ if uploaded_file:
     df['Moneyball Score'] = df.apply(lambda row: compute_moneyball_score(row, metrics), axis=1)
     df = df.sort_values(by='Moneyball Score', ascending=False).reset_index(drop=True)
 
-    top_n = st.slider("Number of top players to display", min_value=5, max_value=50, value=10)
+    top_n = st.slider("Number of top players to display", 5, 50, 10)
 
     available_cols = df.columns.tolist()
     base_cols = [col for col in ['Name', 'Club', 'Division', 'Age', 'Salary', 'Transfer Value', 'Moneyball Score'] if col in available_cols]
     metric_cols = [col for col in metrics if col in available_cols]
     display_cols = base_cols + metric_cols
+
     st.subheader(f"Top {position} Players")
     st.dataframe(df[display_cols].head(top_n))
 
@@ -156,13 +174,11 @@ if uploaded_file:
     st.plotly_chart(fig)
 
     st.subheader("Value for Money")
-    df['Numeric Value'] = df['Transfer Value'].apply(extract_value)
     scatter_df = df.dropna(subset=['Moneyball Score', 'Numeric Value'])
     fig2 = px.scatter(scatter_df.head(50), x='Numeric Value', y='Moneyball Score', color='Age', hover_data=['Name'],
                       title='Transfer Value vs. Performance')
     st.plotly_chart(fig2)
 
-    # --- Radar Chart Comparison ---
     st.subheader("Compare Players via Radar Chart")
     selected_players = st.multiselect("Select up to 3 players for radar comparison", df['Name'].head(top_n).tolist())
 
@@ -170,13 +186,7 @@ if uploaded_file:
         radar_df = df[df['Name'].isin(selected_players)][['Name'] + metrics].dropna()
         fig3 = go.Figure()
         for _, row in radar_df.iterrows():
-            values = []
-            for metric in metrics:
-                try:
-                    val = float(str(row[metric]).replace('%', '').replace(',', '').strip())
-                except:
-                    val = 0
-                values.append(val)
+            values = [float(str(row[m]).replace('%','').replace(',','').strip()) if m in row else 0 for m in metrics]
             fig3.add_trace(go.Scatterpolar(
                 r=values,
                 theta=metrics,
@@ -187,5 +197,6 @@ if uploaded_file:
         st.plotly_chart(fig3)
 
     st.download_button("Download Ranked Players CSV", df[display_cols].to_csv(index=False), file_name="ranked_players.csv")
+
 else:
     st.info("Upload an HTML file containing a table of players with stats.")
