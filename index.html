@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football Player Moneyball Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.5)); }
+            to { filter: drop-shadow(0 0 20px rgba(52, 211, 153, 0.5)); }
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 30px;
+        }
+        
+        .upload-section {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section:hover {
+            border-color: rgba(96, 165, 250, 0.5);
+            box-shadow: 0 4px 20px rgba(96, 165, 250, 0.1);
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-label {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        }
+        
+        .position-selector {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .position-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .position-btn {
+            padding: 12px 20px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .position-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+        
+        .position-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            border-color: transparent;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+        }
+        
+        .filters {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: none;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-size: 0.9rem;
+        }
+        
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 6px;
+            color: #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-group input:focus, .filter-group select:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+        
+        .key-stats-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .key-stats-info h3 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+        
+        .key-stats-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .key-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat-importance {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+        
+        .results-section {
+            display: none;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .metric-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .player-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .player-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, #3b82f6, #10b981);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .player-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .player-card.top-pick {
+            border-color: rgba(34, 211, 153, 0.5);
+            box-shadow: 0 0 30px rgba(34, 211, 153, 0.2);
+        }
+        
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 20px;
+        }
+        
+        .player-info h3 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            color: #f1f5f9;
+        }
+        
+        .player-info p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        
+        .rank-badge {
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            background: rgba(15, 23, 42, 0.8);
+            transform: scale(1.05);
+        }
+        
+        .stat-item.key-stat-highlight {
+            border: 1px solid rgba(96, 165, 250, 0.5);
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+        
+        .value-score {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        
+        .chart-container {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            height: 400px;
+            position: relative;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(96, 165, 250, 0.3);
+            border-top-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚽ Football Player Moneyball Analyzer</h1>
+        <p class="subtitle">Position-specific analysis with league quality adjustments</p>
+        
+        <div class="upload-section">
+            <label for="csvFile" class="file-label">
+                📊 Upload Player Data (HTML)
+            </label>
+            <input type="file" id="csvFile" accept=".csv,.html,.htm">
+            <p style="margin-top: 15px; color: #94a3b8;">Upload your HTML file containing player statistics to begin analysis</p>
+        </div>
+        
+        <div class="position-selector" id="positionSelector">
+            <h2 style="margin-bottom: 10px;">Select Position for Analysis</h2>
+            <p style="color: #94a3b8; margin-bottom: 15px;">Choose a specific position to optimize the analysis for role-specific metrics</p>
+            <div class="position-grid">
+                <button class="position-btn" data-position="GK">GK</button>
+                <button class="position-btn" data-position="CB">CB</button>
+                <button class="position-btn" data-position="LB">LB</button>
+                <button class="position-btn" data-position="RB">RB</button>
+                <button class="position-btn" data-position="WBL">WBL</button>
+                <button class="position-btn" data-position="WBR">WBR</button>
+                <button class="position-btn" data-position="CDM">CDM</button>
+                <button class="position-btn" data-position="CM">CM</button>
+                <button class="position-btn" data-position="CAM">CAM</button>
+                <button class="position-btn" data-position="LM">LM</button>
+                <button class="position-btn" data-position="RM">RM</button>
+                <button class="position-btn" data-position="LW">LW</button>
+                <button class="position-btn" data-position="RW">RW</button>
+                <button class="position-btn" data-position="CF">CF</button>
+                <button class="position-btn" data-position="ST">ST</button>
+                <button class="position-btn active" data-position="ALL">All Positions</button>
+            </div>
+        </div>
+        
+        <div class="filters" id="filters">
+            <div class="filter-group">
+                <label>Max Price (€)</label>
+                <input type="number" id="maxPrice" placeholder="e.g., 10000000">
+            </div>
+            <div class="filter-group">
+                <label>Max Age</label>
+                <input type="number" id="maxAge" placeholder="e.g., 30">
+            </div>
+            <div class="filter-group">
+                <label>Min Rating</label>
+                <input type="number" id="minRating" step="0.1" placeholder="e.g., 6.5">
+            </div>
+            <div class="filter-group">
+                <label>Min Apps</label>
+                <input type="number" id="minApps" placeholder="e.g., 10">
+            </div>
+        </div>
+        
+        <div class="key-stats-info" id="keyStatsInfo">
+            <h3>🎯 Key Metrics for <span id="selectedPositionName">All Positions</span></h3>
+            <div class="key-stats-list" id="keyStatsList"></div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div></div>
+            <p style="margin-top: 20px;">Analyzing player data...</p>
+        </div>
+        
+        <div class="results-section" id="results">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="totalPlayers">0</div>
+                    <div class="metric-label">Total Players Analyzed</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="avgValue">€0</div>
+                    <div class="metric-label">Average Player Value</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="bestValue">0</div>
+                    <div class="metric-label">Best Value Score</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="hiddenGems">0</div>
+                    <div class="metric-label">Hidden Gems Found</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="valueChart"></canvas>
+            </div>
+            
+            <h2 style="margin-bottom: 20px; text-align: center;">🏆 Top Moneyball Picks</h2>
+            <div id="playerList"></div>
+        </div>
+    </div>
+    
+    <script>
+        let allPlayers = [];
+        let valueChart = null;
+        let selectedPosition = 'ALL';
+        
+        // League coefficients based on the uploaded ranking
+        const leagueCoefficients = {
+            'Premier League': 1.0,
+            'Serie A TIM': 0.98,
+            'Serie A': 0.98,
+            'LaLiga EA Sports': 0.96,
+            'LaLiga': 0.96,
+            'La Liga': 0.96,
+            'Bundesliga': 0.94,
+            'Ligue 1 McDonald\'s': 0.92,
+            'Ligue 1': 0.92,
+            'Eredivisie': 0.88,
+            'Liga Portugal Betclic': 0.86,
+            'Liga Portugal': 0.86,
+            '3F Superliga': 0.84,
+            'Allsvenskan': 0.82,
+            'Trendyol Süper Lig': 0.80,
+            'Süper Lig': 0.80,
+            'cinch Premiership': 0.78,
+            'Scottish Premiership': 0.78,
+            'Admiral Bundesliga': 0.76,
+            'Jupiler Pro League': 0.74,
+            'Raiffeisen Super League': 0.72,
+            'Super League Interwetten': 0.70,
+            'Favbet Liha': 0.68,
+            'Mozzart Super Liga': 0.66,
+            'Sky Bet Championship': 0.65,
+            'Championship': 0.65,
+            '2. Bundesliga': 0.63,
+            'Serie BKT': 0.61,
+            'Serie B': 0.61,
+            'Ligue 2 BKT': 0.59,
+            'Ligue 2': 0.59,
+            'LaLiga 2 Hypermotion': 0.57,
+            'Sky Bet League One': 0.50,
+            'League One': 0.50,
+            'Sky Bet League Two': 0.45,
+            'League Two': 0.45,
+            '3. Liga': 0.48,
+            'Vanarama National League': 0.40,
+            'National League': 0.40,
+            'default': 0.50
+        };
+
+        function parseTransferValue(valueStr) {
+            if (!valueStr || typeof valueStr !== 'string') return { min: 0, max: 0 };
+
+            // Remove non-breaking spaces and normalize characters
+            const cleaned = valueStr
+                .replace(/\u00A0/g, ' ')
+                .replace(/[–—]/g, '-')
+                .replace(/[^0-9MKmk\.\-$ ]/g, '')  // Strip unwanted symbols except M/K, dash, numbers, spaces
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            // Split by dash if it's a range
+            const parts = cleaned.split('-').map(p => p.trim());
+
+            const parseAmount = (str) => {
+                const match = str.match(/([\d.]+)\s*([MKmk])/);
+                if (!match) return 0;
+                const num = parseFloat(match[1]);
+                const multiplier = match[2].toUpperCase() === 'M' ? 1_000_000 : 1_000;
+                return num * multiplier;
+            };
+
+            const minVal = parseAmount(parts[0]);
+            const maxVal = parts[1] ? parseAmount(parts[1]) : minVal;
+
+            return { min: minVal, max: maxVal };
+        }
+
+        function getLeagueCoefficient(clubOrDivision) {
+            if (!clubOrDivision) return leagueCoefficients.default;
+            
+            // Check for exact match first
+            for (const [league, coefficient] of Object.entries(leagueCoefficients)) {
+                if (league !== 'default' && (clubOrDivision.includes(league) || league.includes(clubOrDivision))) {
+                    return coefficient;
+                }
+            }
+            
+            // Check for country-based matching
+            const countryPatterns = {
+                'England': 0.65,
+                'Spain': 0.60,
+                'Germany': 0.58,
+                'Italy': 0.56,
+                'France': 0.54,
+                'Netherlands': 0.52,
+                'Portugal': 0.50,
+                'Scotland': 0.48,
+                'Belgium': 0.46,
+                'Turkey': 0.44,
+                'Austria': 0.42,
+                'Switzerland': 0.40,
+                'Denmark': 0.38,
+                'Sweden': 0.36,
+                'Norway': 0.34
+            };
+            
+            for (const [country, coefficient] of Object.entries(countryPatterns)) {
+                if (clubOrDivision.includes(country)) {
+                    return coefficient;
+                }
+            }
+            
+            return leagueCoefficients.default;
+        }
+        
+        // Position-specific weightings (updated for new column names)
+        const positionWeights = {
+            GK: {
+                keyStats: ['Sv %', 'Svh', 'Svt', 'Svp', 'Pens Saved Ratio', 'xSv %', 'Shutouts', 'Clear', 'Pas %'],
+                weights: {
+                    'Sv %': 30,
+                    'xSv %': 25,
+                    'Pens Saved Ratio': 20,
+                    'Shutouts': 15,
+                    'Clear': 10,
+                    'Clr/90': 10,
+                    'Svh': 10,
+                    'Svt': 10,
+                    'Svp': 10,
+                    'Pas %': 15,
+                    'Av Rat': 20
+                }
+            },
+            CB: {
+                keyStats: ['Tck/90', 'Int/90', 'Clear', 'Hdr %', 'Pas %', 'Aer A/90', 'Fls', 'Av Rat'],
+                weights: {
+                    'Tck/90': 25,
+                    'Int/90': 25,
+                    'Clear': 20,
+                    'Clr/90': 20,
+                    'Hdr %': 20,
+                    'Aer A/90': 15,
+                    'Pas %': 15,
+                    'Av Rat': 20,
+                    'Fls': -10,
+                    'Blk/90': 15
+                }
+            },
+            LB: {
+                keyStats: ['Tck/90', 'Int/90', 'Cr C/A', 'K Ps/90', 'Asts/90', 'Pas %', 'Dist/90'],
+                weights: {
+                    'Tck/90': 20,
+                    'Int/90': 20,
+                    'Cr C/A': 25,
+                    'Cr C/90': 15,
+                    'K Ps/90': 15,
+                    'Asts/90': 15,
+                    'Pas %': 15,
+                    'Dist/90': 10,
+                    'Distance': 5,
+                    'Av Rat': 20
+                }
+            },
+            RB: {
+                keyStats: ['Tck/90', 'Int/90', 'Cr C/A', 'K Ps/90', 'Asts/90', 'Pas %', 'Dist/90'],
+                weights: {
+                    'Tck/90': 20,
+                    'Int/90': 20,
+                    'Cr C/A': 25,
+                    'Cr C/90': 15,
+                    'K Ps/90': 15,
+                    'Asts/90': 15,
+                    'Pas %': 15,
+                    'Dist/90': 10,
+                    'Distance': 5,
+                    'Av Rat': 20
+                }
+            },
+            WBL: {
+                keyStats: ['Cr C/A', 'Asts/90', 'K Ps/90', 'Dist/90', 'Drb/90', 'Tck/90'],
+                weights: {
+                    'Cr C/A': 30,
+                    'Cr C/90': 20,
+                    'Asts/90': 20,
+                    'K Ps/90': 20,
+                    'Dist/90': 15,
+                    'Distance': 5,
+                    'Drb/90': 15,
+                    'Tck/90': 15,
+                    'Int/90': 10,
+                    'Av Rat': 20
+                }
+            },
+            WBR: {
+                keyStats: ['Cr C/A', 'Asts/90', 'K Ps/90', 'Dist/90', 'Drb/90', 'Tck/90'],
+                weights: {
+                    'Cr C/A': 30,
+                    'Cr C/90': 20,
+                    'Asts/90': 20,
+                    'K Ps/90': 20,
+                    'Dist/90': 15,
+                    'Distance': 5,
+                    'Drb/90': 15,
+                    'Tck/90': 15,
+                    'Int/90': 10,
+                    'Av Rat': 20
+                }
+            },
+            CDM: {
+                keyStats: ['Tck/90', 'Int/90', 'Pas %', 'K Ps/90', 'Dist/90', 'Av Rat'],
+                weights: {
+                    'Tck/90': 30,
+                    'Int/90': 25,
+                    'Pas %': 20,
+                    'K Ps/90': 15,
+                    'Ps C/90': 15,
+                    'Dist/90': 10,
+                    'Distance': 5,
+                    'Av Rat': 20,
+                    'Fls': -5,
+                    'Poss Won/90': 15
+                }
+            },
+            CM: {
+                keyStats: ['K Ps/90', 'Pas %', 'Asts/90', 'Dist/90', 'Tck/90', 'Drb/90'],
+                weights: {
+                    'K Ps/90': 25,
+                    'Pas %': 20,
+                    'Ps C/90': 20,
+                    'Asts/90': 20,
+                    'Gls/90': 15,
+                    'Dist/90': 15,
+                    'Distance': 5,
+                    'Tck/90': 15,
+                    'Int/90': 10,
+                    'Drb/90': 10,
+                    'Av Rat': 20
+                }
+            },
+            CAM: {
+                keyStats: ['K Ps/90', 'Asts/90', 'Gls/90', 'Ch C/90', 'Drb/90', 'Shot %'],
+                weights: {
+                    'K Ps/90': 30,
+                    'Asts/90': 25,
+                    'Gls/90': 20,
+                    'Ch C/90': 20,
+                    'xG': 15,
+                    'xG/90': 15,
+                    'xA': 10,
+                    'xA/90': 10,
+                    'Drb/90': 15,
+                    'Shot %': 10,
+                    'Av Rat': 20
+                }
+            },
+            LM: {
+                keyStats: ['Cr C/A', 'K Ps/90', 'Asts/90', 'Drb/90', 'Dist/90'],
+                weights: {
+                    'Cr C/A': 25,
+                    'Cr C/90': 20,
+                    'K Ps/90': 20,
+                    'Asts/90': 20,
+                    'Drb/90': 15,
+                    'Gls/90': 15,
+                    'Dist/90': 10,
+                    'Distance': 5,
+                    'Av Rat': 20
+                }
+            },
+            RM: {
+                keyStats: ['Cr C/A', 'K Ps/90', 'Asts/90', 'Drb/90', 'Dist/90'],
+                weights: {
+                    'Cr C/A': 25,
+                    'Cr C/90': 20,
+                    'K Ps/90': 20,
+                    'Asts/90': 20,
+                    'Drb/90': 15,
+                    'Gls/90': 15,
+                    'Dist/90': 10,
+                    'Distance': 5,
+                    'Av Rat': 20
+                }
+            },
+            LW: {
+                keyStats: ['Gls/90', 'Asts/90', 'Drb/90', 'Shot %', 'Ch C/90', 'xG'],
+                weights: {
+                    'Gls/90': 30,
+                    'Asts/90': 20,
+                    'Drb/90': 20,
+                    'Shot %': 15,
+                    'ShT/90': 15,
+                    'Ch C/90': 15,
+                    'xG': 20,
+                    'xG/90': 20,
+                    'xA': 10,
+                    'xA/90': 10,
+                    'K Ps/90': 10,
+                    'Av Rat': 20
+                }
+            },
+            RW: {
+                keyStats: ['Gls/90', 'Asts/90', 'Drb/90', 'Shot %', 'Ch C/90', 'xG'],
+                weights: {
+                    'Gls/90': 30,
+                    'Asts/90': 20,
+                    'Drb/90': 20,
+                    'Shot %': 15,
+                    'ShT/90': 15,
+                    'Ch C/90': 15,
+                    'xG': 20,
+                    'xG/90': 20,
+                    'xA': 10,
+                    'xA/90': 10,
+                    'K Ps/90': 10,
+                    'Av Rat': 20
+                }
+            },
+            CF: {
+                keyStats: ['Gls/90', 'Asts/90', 'Ch C/90', 'K Ps/90', 'xG', 'Shot %'],
+                weights: {
+                    'Gls/90': 25,
+                    'Asts/90': 25,
+                    'Ch C/90': 20,
+                    'K Ps/90': 20,
+                    'xG': 20,
+                    'xG/90': 20,
+                    'xA': 15,
+                    'xA/90': 15,
+                    'Shot %': 15,
+                    'ShT/90': 10,
+                    'Av Rat': 20
+                }
+            },
+            ST: {
+                keyStats: ['Gls/90', 'Shot %', 'ShT/90', 'xG', 'Ch C/90', 'Hdr %'],
+                weights: {
+                    'Gls/90': 35,
+                    'Shot %': 20,
+                    'ShT/90': 15,
+                    'xG': 25,
+                    'xG/90': 25,
+                    'Ch C/90': 15,
+                    'Hdr %': 15,
+                    'Hdrs W/90': 10,
+                    'Conv %': 20,
+                    'Asts/90': 10,
+                    'Av Rat': 20
+                }
+            }
+        };
+        
+        document.getElementById('csvFile').addEventListener('change', handleFileUpload);
+        document.getElementById('maxPrice').addEventListener('input', applyFilters);
+        document.getElementById('maxAge').addEventListener('input', applyFilters);
+        document.getElementById('minRating').addEventListener('input', applyFilters);
+        document.getElementById('minApps').addEventListener('input', applyFilters);
+        
+        // Position button clicks
+        document.querySelectorAll('.position-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedPosition = this.dataset.position;
+                updateKeyStatsDisplay();
+                if (allPlayers.length > 0) {
+                    applyFilters();
+                }
+            });
+        });
+        
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            const fileName = file.name.toLowerCase();
+            
+            if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+                // Handle HTML file
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const htmlContent = e.target.result;
+                    parseHTMLData(htmlContent);
+                };
+                reader.readAsText(file);
+            } else {
+                // Handle CSV file
+                Papa.parse(file, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        allPlayers = results.data.map(player => {
+                            // Clean up column names by trimming whitespace
+                            const cleanPlayer = {};
+                            Object.keys(player).forEach(key => {
+                                const cleanKey = key.trim();
+                                cleanPlayer[cleanKey] = player[key];
+                            });
+                            return cleanPlayer;
+                        });
+                        
+                        processPlayerData();
+                    }
+                });
+            }
+        }
+        
+        function parseHTMLData(htmlContent) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const table = doc.querySelector('table');
+            
+            if (!table) {
+                alert('No table found in HTML file');
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            
+            const headers = [];
+            const headerRow = table.querySelector('tr');
+            if (headerRow) {
+                // Look for th tags
+                const thElements = headerRow.querySelectorAll('th');
+                thElements.forEach(th => {
+                    headers.push(th.textContent.trim());
+                });
+            }
+            
+            console.log('Headers found:', headers);
+            
+            allPlayers = [];
+            const rows = table.querySelectorAll('tr');
+            console.log('Total rows found:', rows.length);
+            
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 0) {
+                    const player = {};
+                    let hasValidData = false;
+                    
+                    cells.forEach((cell, index) => {
+                        if (headers[index]) {
+                            let value = cell.textContent.trim();
+                            
+                            // Skip rows that are mostly empty or have "-" values
+                            if (value && value !== '-') {
+                                hasValidData = true;
+                            }
+                            
+                            // Clean up currency values
+                            if (headers[index] === 'Salary' || headers[index] === 'Asking Price' || headers[index] === 'Transfer Value') {
+                                value = value.replace(/\s+/g, ' ').replace(/\u00A0/g, ' ').trim();
+                            }
+                            
+                            // Convert "-" to 0 for numeric fields
+                            if (value === '-' && !['Name', 'Position', 'Club', 'Division', 'Nat', '2nd Nat', 'Personality', 'Media Handling', 'Home Grown Status', 'Preferred Foot'].includes(headers[index])) {
+                                value = 0;
+                            }
+                            
+                            // Try to parse numbers
+                            if (!isNaN(value) && value !== '' && value !== '-') {
+                                value = parseFloat(value);
+                            }
+                            
+                            player[headers[index]] = value;
+                        }
+                    });
+                    
+                    // Only add players with valid data (name and position at minimum)
+                    if (hasValidData && player['Name'] && player['Name'] !== '-' && player['Position'] && player['Position'] !== '-') {
+                        console.log('Adding player:', player['Name']);
+                        allPlayers.push(player);
+                    }
+                }
+            }
+            
+            console.log('Total players parsed:', allPlayers.length);
+            processPlayerData();
+        }
+        
+        function processPlayerData() {
+            if (allPlayers.length === 0) {
+                alert('No player data found in file');
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('positionSelector').style.display = 'block';
+            document.getElementById('filters').style.display = 'flex';
+            document.getElementById('keyStatsInfo').style.display = 'block';
+            updateKeyStatsDisplay();
+            applyFilters();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+        }
+        
+        function updateKeyStatsDisplay() {
+            const selectedPos = selectedPosition === 'ALL' ? 'All Positions' : selectedPosition;
+            document.getElementById('selectedPositionName').textContent = selectedPos;
+            
+            const keyStatsList = document.getElementById('keyStatsList');
+            keyStatsList.innerHTML = '';
+            
+            if (selectedPosition !== 'ALL' && positionWeights[selectedPosition]) {
+                const keyStats = positionWeights[selectedPosition].keyStats;
+                keyStats.forEach(stat => {
+                    const statDiv = document.createElement('div');
+                    statDiv.className = 'key-stat';
+                    statDiv.innerHTML = `
+                        <div class="stat-importance"></div>
+                        <span>${stat}</span>
+                    `;
+                    keyStatsList.appendChild(statDiv);
+                });
+            } else {
+                keyStatsList.innerHTML = '<p style="color: #94a3b8;">Analysis will use balanced metrics across all positions</p>';
+            }
+        }
+        
+        function calculateMoneyballScore(player) {
+            // Parse numeric values
+            let price = 0;
+            let salary = 0;
+            
+            // Handle different price formats
+            const transferValue = player['Transfer Value'];
+            if (typeof transferValue === 'string') {
+                const matches = transferValue.match(/\$([\d.]+)([MK])(?:\s*-\s*\$([\d.]+)([MK]))?/i);
+
+                if (matches) {
+                    const parseAmount = (numStr, suffix) => {
+                        const multiplier = suffix === 'M' ? 1_000_000 : suffix === 'K' ? 1_000 : 1;
+                        return parseFloat(numStr) * multiplier;
+                    };
+
+                    const minVal = parseAmount(matches[1], matches[2]);
+                    const maxVal = matches[3] ? parseAmount(matches[3], matches[4]) : minVal;
+
+                    price = (minVal + maxVal) / 2;
+                } else {
+                    console.warn('Transfer value format did not match expected pattern:', transferValue);
+                }
+            } else {
+                console.warn('Transfer value missing or not a string:', transferValue);
+            }
+            
+            // Handle salary in "p/w" format
+            const salaryStrRaw = player['Salary'];
+            const salaryStr = typeof salaryStrRaw === 'string' ? salaryStrRaw : String(salaryStrRaw || '');
+
+            if (salaryStr && salaryStr !== '-' && salaryStr !== 'Unknown') {
+                const salaryMatch = salaryStr.match(/[\d,]+/);
+                if (salaryMatch) {
+                    const weeklyWage = parseFloat(salaryMatch[0].replace(/,/g, ''));
+                    salary = weeklyWage * 52; // Convert to annual
+                }
+            }
+
+            
+            const age = parseInt(player['Age']) || 30;
+            const apps = parseInt(player['Apps']) || 0;
+            const mins = parseInt(player['Mins']) || 0;
+            
+            // Calculate total cost (price + 3 years of salary)
+            const totalCost = price + (salary * 3);
+            
+            // Get position-specific weights
+            let weights = {};
+            let detectedPosition = null;
+            
+            // Handle position abbreviations
+            const positionMap = {
+                'DM': 'CDM',
+                'AM': 'CAM',
+                'M': 'CM',
+                'D': 'CB',
+                'GK': 'GK',
+                'ST': 'ST',
+                'CF': 'CF',
+                'LW': 'LW',
+                'RW': 'RW',
+                'LB': 'LB',
+                'RB': 'RB',
+                'CB': 'CB',
+                'CDM': 'CDM',
+                'CM': 'CM',
+                'CAM': 'CAM',
+                'LM': 'LM',
+                'RM': 'RM',
+                'WBL': 'WBL',
+                'WBR': 'WBR'
+            };
+            
+            if (selectedPosition !== 'ALL' && positionWeights[selectedPosition]) {
+                weights = positionWeights[selectedPosition].weights;
+                detectedPosition = selectedPosition;
+            } else if (selectedPosition === 'ALL') {
+                // For ALL positions, detect player's position and use appropriate weights
+                const playerPos = player['Position'];
+                if (playerPos) {
+                    // Map position to our weight categories
+                    const mappedPos = positionMap[playerPos] || playerPos;
+                    
+                    if (positionWeights[mappedPos]) {
+                        weights = positionWeights[mappedPos].weights;
+                        detectedPosition = mappedPos;
+                    } else {
+                        // Try to find a close match
+                        const posKeys = Object.keys(positionWeights);
+                        const match = posKeys.find(key => playerPos.includes(key) || key.includes(playerPos));
+                        if (match) {
+                            weights = positionWeights[match].weights;
+                            detectedPosition = match;
+                        } else {
+                            // Default balanced weights
+                            weights = getDefaultWeights();
+                            detectedPosition = 'DEFAULT';
+                        }
+                    }
+                } else {
+                    weights = getDefaultWeights();
+                    detectedPosition = 'DEFAULT';
+                }
+            } else {
+                // Filter for specific position
+                const playerPos = player['Position'];
+                const mappedPos = positionMap[playerPos] || playerPos;
+                if (mappedPos !== selectedPosition) {
+                    return { ...player, moneyballScore: 0, performanceScore: 0, totalCost: totalCost, isHiddenGem: false };
+                }
+                weights = positionWeights[selectedPosition].weights;
+                detectedPosition = selectedPosition;
+            }
+            
+            // Calculate performance score based on weighted metrics
+            let performanceScore = 0;
+            const statBreakdown = {};
+            
+            Object.entries(weights).forEach(([stat, weight]) => {
+                let value = parseFloat(player[stat]) || 0;
+                
+                // Handle percentage stats (convert to 0-1 scale)
+                if (stat.includes('%') || stat === 'Pas %' || stat === 'Hdr %' || stat === 'Shot %') {
+                    value = value / 100;
+                }
+                
+                // Apply weight (negative weights for stats we want to minimize like fouls)
+                const contribution = value * weight;
+                performanceScore += contribution;
+                statBreakdown[stat] = contribution;
+            });
+            
+            // Age factor (prefer younger players with growth potential)
+            const ageFactor = age < 24 ? 1.3 : age < 27 ? 1.15 : age < 30 ? 1.0 : 0.8;
+            
+            // Experience factor
+            const experienceFactor = mins > 0 ? Math.min(mins / 1000, 2) : 0.5;
+            
+            // League quality factor
+            const leagueCoefficient = getLeagueCoefficient(player['Division'] || player['Club'] || player['League'] || '');
+            
+            // Calculate value score (performance per million) with league adjustment
+            const adjustedPerformance = performanceScore * leagueCoefficient;
+            const valueScore = totalCost > 0 ? (adjustedPerformance * ageFactor * experienceFactor) / (totalCost / 1000000) : 0;
+            
+            // Determine if player is a hidden gem
+            const isHiddenGem = valueScore > 50 && apps >= 10 && age < 28 && leagueCoefficient < 0.7;
+            
+            return {
+                ...player,
+                moneyballScore: valueScore,
+                performanceScore: performanceScore,
+                adjustedPerformance: adjustedPerformance,
+                totalCost: totalCost,
+                ageFactor: ageFactor,
+                experienceFactor: experienceFactor,
+                leagueCoefficient: leagueCoefficient,
+                detectedPosition: detectedPosition,
+                statBreakdown: statBreakdown,
+                isHiddenGem: isHiddenGem
+            };
+        }
+        
+        function getDefaultWeights() {
+            return {
+                'Av Rat': 20,
+                'Gls/90': 25,
+                'Asts/90': 20,
+                'K Ps/90': 15,
+                'Pas %': 15,
+                'Tck/90': 10,
+                'Int/90': 10,
+                'xG': 15,
+                'xG/90': 15,
+                'Ch C/90': 10,
+                'Drb/90': 10
+            };
+        }
+        
+        function applyFilters() {
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value) || Infinity;
+            const maxAge = parseInt(document.getElementById('maxAge').value) || Infinity;
+            const minRating = parseFloat(document.getElementById('minRating').value) || 0;
+            const minApps = parseInt(document.getElementById('minApps').value) || 0;
+
+            // Football Manager-style position aliases
+            const positionAliases = {
+                'GK': ['GK'],
+
+                'CB': ['CB', 'DC', 'D (C)', 'D C'],
+                'LB': ['LB', 'DL', 'D (L)', 'D L'],
+                'RB': ['RB', 'DR', 'D (R)', 'D R'],
+
+                'LWB': ['LWB', 'WB (L)', 'WB L'],
+                'RWB': ['RWB', 'WB (R)', 'WB R'],
+
+                'CDM': ['CDM', 'DM', 'DM C', 'DM (C)'],
+                'CM': ['CM', 'M', 'M C', 'M (C)'],
+                'CAM': ['CAM', 'AM C', 'AM (C)'],
+
+                'LM': ['LM', 'M L', 'M (L)', 'ML'],
+                'RM': ['RM', 'M R', 'M (R)', 'MR'],
+
+                'LW': ['LW', 'AM L', 'AM (L)', 'AML'],
+                'RW': ['RW', 'AM R', 'AM (R)', 'AMR'],
+
+                'CF': ['CF', 'ST C', 'ST (C)', 'STC'],
+                'ST': ['ST', 'ST C', 'ST (C)', 'CF']
+            };
+
+            function positionMatches(playerPosRaw, selectedPosition) {
+                if (!selectedPosition || selectedPosition === 'ALL') return true;
+                const playerPos = String(playerPosRaw || '').toUpperCase();
+
+                const aliases = positionAliases[selectedPosition];
+                if (!aliases) return false;
+
+                return aliases.some(alias => playerPos.includes(alias));
+            }
+
+            const filtered = allPlayers.filter(player => {
+                const { min: minVal, max: maxVal } = parseTransferValue(player['Transfer Value'] || '');
+                const price = (minVal + maxVal) / 2 || 0;
+                const age = parseInt(player['Age']) || 0;
+                const rating = parseFloat(player['Av Rat']) || 0;
+                const apps = parseInt(player['Apps']) || 0;
+                const playerPos = player['Position'];
+
+                // Apply filters
+                if (!positionMatches(playerPos, selectedPosition)) return false;
+
+                return price <= maxPrice &&
+                    age <= maxAge &&
+                    rating >= minRating &&
+                    apps >= minApps;
+            });
+
+            displayResults(filtered);
+        }
+
+        function displayResults(players) {
+            try {
+                // Calculate Moneyball scores
+                const scoredPlayers = players.map(calculateMoneyballScore)
+                    .filter(p => p && p.moneyballScore > 0)
+                    .sort((a, b) => b.moneyballScore - a.moneyballScore);
+                
+                console.log('Scored players:', scoredPlayers.length);
+                
+                // Update metrics
+                document.getElementById('totalPlayers').textContent = scoredPlayers.length;
+                
+                const avgValue = scoredPlayers.reduce((sum, p) => {
+                    const { min: minVal, max: maxVal } = parseTransferValue(p['Transfer Value'] || '');
+                    const price = (minVal + maxVal) / 2 || 0;
+                    return sum + price;
+                }, 0) / scoredPlayers.length || 0;
+                document.getElementById('avgValue').textContent = '€' + (avgValue / 1000000).toFixed(1) + 'M';
+                
+                document.getElementById('bestValue').textContent = scoredPlayers[0]?.moneyballScore.toFixed(1) || '0';
+                
+                // Count hidden gems (high score, low price)
+                const avgMoneyballScore = scoredPlayers.reduce((sum, p) => sum + p.moneyballScore, 0) / scoredPlayers.length || 0;
+                const hiddenGems = scoredPlayers.filter(p => {
+                    const { min: minVal, max: maxVal } = parseTransferValue(p['Transfer Value'] || '');
+                    const price = (minVal + maxVal) / 2 || 0;
+                    return p.isHiddenGem && price < avgValue * 0.7 && p.moneyballScore > avgMoneyballScore;
+                }).length;
+                document.getElementById('hiddenGems').textContent = hiddenGems;
+                
+                // Display top players
+                const playerList = document.getElementById('playerList');
+                playerList.innerHTML = '';
+                
+                const topPlayers = scoredPlayers.slice(0, 10);
+                topPlayers.forEach((player, index) => {
+                    try {
+                        const { min: minval, max: maxval } = parseTransferValue(player['Transfer Value'] || '');
+                        const price = (minval + maxval) / 2 || 0;
+                        const salary = parseFloat(String(player['Salary'] || 0).replace(/[^0-9.-]/g, '')) || 0;
+                        
+                        const playerCard = document.createElement('div');
+                        playerCard.className = `player-card ${index < 3 ? 'top-pick' : ''}`;
+                        
+                        // Get key stats for this position
+                        let keyStats = [];
+                        let positionUsed = selectedPosition;
+                        
+                        if (selectedPosition === 'ALL' && player.detectedPosition && player.detectedPosition !== 'DEFAULT') {
+                            positionUsed = player.detectedPosition;
+                        }
+                        
+                        if (positionWeights[positionUsed]) {
+                            keyStats = positionWeights[positionUsed].keyStats.slice(0, 6);
+                        } else {
+                            // Default key stats (updated for new column names)
+                            keyStats = ['Av Rat', 'Gls/90', 'Asts/90', 'Apps', 'Pas %', 'Age'];
+                        }
+                        
+                        // Create stat breakdown tooltip
+                        const topContributors = player.statBreakdown ? 
+                            Object.entries(player.statBreakdown)
+                                .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+                                .slice(0, 3)
+                                .map(([stat, value]) => `${stat}: ${value.toFixed(1)}`)
+                                .join(', ') : '';
+                        
+                        let statsHTML = '';
+                        // Always show price and salary first
+                        const { min: minVal, max: maxVal } = parseTransferValue(player['Transfer Value'] || '');
+                        console.log(`Player: ${player.Name}, Min Value: ${minVal}, Max Value: ${maxVal}, Salary: ${salary}`);
+                        console.log(`Transfer Value: ${player['Transfer Value']}, Salary: ${player['Salary']}`);
+                        
+                        function formatEuro(val) {
+                            return val >= 1_000_000
+                                ? `€${(val / 1_000_000).toFixed(1)}M`
+                                : `€${(val / 1_000).toFixed(0)}K`;
+                        }
+
+                        function formatWeeklySalary(val) {
+                            return val >= 1000
+                                ? `€${(val / 1000).toFixed(1)}K`
+                                : `€${val.toFixed(0)}`;
+                        }
+
+                        statsHTML += `
+                            <div class="stat-item">
+                                <div class="stat-value">${formatEuro(minVal)} - ${formatEuro(maxVal)}</div>
+                                <div class="stat-label">Transfer Value</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${formatWeeklySalary(salary)}</div>
+                                <div class="stat-label">Weekly Salary</div>
+                            </div>
+                        `;
+                        
+                        // Then show position-specific key stats
+                        keyStats.slice(0, 4).forEach(stat => {
+                            const value = player[stat];
+                            const formattedValue = value !== undefined && value !== null && value !== '-' ? 
+                                (typeof value === 'number' ? value.toFixed(1) : value) : 'N/A';
+                            
+                            statsHTML += `
+                                <div class="stat-item key-stat-highlight">
+                                    <div class="stat-value">${formattedValue}</div>
+                                    <div class="stat-label">${stat}</div>
+                                </div>
+                            `;
+                        });
+                        
+                        // Add age factor and experience factor display
+                        const ageFactorText = player.ageFactor === 1.3 ? 'High Growth' : 
+                                             player.ageFactor === 1.15 ? 'Peak Development' :
+                                             player.ageFactor === 1.0 ? 'Prime Years' : 'Veteran';
+                        
+                        const gemBadge = player.isHiddenGem ? '<span style="background: linear-gradient(135deg, #10b981, #34d399); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; margin-left: 10px;">💎 Hidden Gem</span>' : '';
+                        
+                        // League quality indicator
+                        const leagueQuality = player.leagueCoefficient >= 0.9 ? '⭐⭐⭐⭐⭐' :
+                                             player.leagueCoefficient >= 0.7 ? '⭐⭐⭐⭐' :
+                                             player.leagueCoefficient >= 0.5 ? '⭐⭐⭐' :
+                                             player.leagueCoefficient >= 0.3 ? '⭐⭐' : '⭐';
+                        
+                        playerCard.innerHTML = `
+                            <div class="player-header">
+                                <div class="player-info">
+                                    <h3>${player.Name || 'Unknown'}${gemBadge}</h3>
+                                    <p>${player.Position || 'N/A'} • ${player.Club || 'N/A'} • Age ${player.Age || 'N/A'} (${ageFactorText})</p>
+                                    <p style="font-size: 0.8rem; color: #60a5fa;">League Quality: ${leagueQuality} (${(player.leagueCoefficient * 100).toFixed(0)}%)</p>
+                                </div>
+                                <div class="rank-badge">#${index + 1}</div>
+                            </div>
+                            <div class="stats-grid">
+                                ${statsHTML}
+                            </div>
+                            <div class="value-score" title="Top contributing stats: ${topContributors}">
+                                Moneyball Score: ${player.moneyballScore.toFixed(1)} • Adjusted Performance: ${(player.adjustedPerformance || 0).toFixed(1)} • Experience: ${(player.experienceFactor || 1).toFixed(1)}x
+                            </div>
+                        `;
+                        playerList.appendChild(playerCard);
+                    } catch (playerError) {
+                        console.error('Error displaying player:', player.Name, playerError);
+                    }
+                });
+                
+                // Update chart
+                if (topPlayers.length > 0) {
+                    updateValueChart(topPlayers);
+                }
+            } catch (error) {
+                console.error('Error in displayResults:', error);
+                alert('An error occurred while displaying results. Check the console for details.');
+            }
+        }
+        
+        function updateValueChart(players) {
+            const ctx = document.getElementById('valueChart').getContext('2d');
+
+            if (valueChart) {
+                valueChart.destroy();
+            }
+
+            // Separate hidden gems from regular players
+            const hiddenGems = players.filter(p => p.isHiddenGem);
+            const regularPlayers = players.filter(p => !p.isHiddenGem);
+
+            // Helper to extract average transfer value in millions
+            const getAvgTransferValueInMillions = (player) => {
+                const { min, max } = parseTransferValue(String(player['Transfer Value'] || ''));
+                return ((min + max) / 2) / 1_000_000;
+            };
+
+            valueChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Regular Players',
+                            data: regularPlayers.map(p => ({
+                                x: getAvgTransferValueInMillions(p),
+                                y: p.adjustedPerformance,
+                                playerName: p.Name,
+                                moneyballScore: p.moneyballScore
+                            })),
+                            backgroundColor: 'rgba(96, 165, 250, 0.6)',
+                            borderColor: 'rgba(96, 165, 250, 1)',
+                            borderWidth: 2,
+                            pointRadius: 8,
+                            pointHoverRadius: 12
+                        },
+                        {
+                            label: 'Hidden Gems',
+                            data: hiddenGems.map(p => ({
+                                x: getAvgTransferValueInMillions(p),
+                                y: p.adjustedPerformance,
+                                playerName: p.Name,
+                                moneyballScore: p.moneyballScore
+                            })),
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 3,
+                            pointRadius: 10,
+                            pointHoverRadius: 14,
+                            pointStyle: 'star'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Performance vs Price Analysis - ${selectedPosition === 'ALL' ? 'All Positions' : selectedPosition}`,
+                            color: '#e2e8f0',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#e2e8f0'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `${context.raw.playerName}: €${context.parsed.x.toFixed(1)}M, Adjusted Performance: ${context.parsed.y.toFixed(1)}, Moneyball: ${context.raw.moneyballScore.toFixed(1)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Transfer Value (€ Million)',
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.1)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'League-Adjusted Performance Score',
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.1)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
