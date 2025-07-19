@@ -1,4 +1,5 @@
 import re
+from matplotlib import cm
 import pandas as pd
 import streamlit as st
 import plotly.express as px
@@ -36,50 +37,61 @@ def extract_value(val):
 
 # --- League coefficient mapping ---
 LEAGUE_COEFFICIENTS = {
-    'Premier League': 1.00,
-    'La Liga': 0.975,
-    'Serie A': 0.955,
-    'Bundesliga': 0.950,
-    'Ligue 1': 0.945,
-    'Liga Portugal Bwin': 0.930,
-    'Eredivisie': 0.920,
-    'Premiership': 0.910,
-    'Belgian Pro League': 0.900,
-    'Super Lig': 0.890,
-    'Russian Premier League': 0.880,
-    'Championship': 0.870,
-    'Serie B': 0.860,
-    '2. Bundesliga': 0.855,
-    'Ligue 2': 0.850,
-    'Segunda Divisi\u00f3n': 0.845,
-    'MLS': 0.840,
-    'Brazilian Serie A': 0.835,
-    'Argentine Primera Divisi\u00f3n': 0.830,
-    'Swiss Super League': 0.825,
-    'Austrian Bundesliga': 0.820,
-    'Greek Super League': 0.815,
-    'Czech First League': 0.810,
-    '3F Superliga': 0.805,
-    'Polish Ekstraklasa': 0.800,
-    'Ukrainian Premier League': 0.795,
-    'Croatian HNL': 0.790,
-    'Serbian SuperLiga': 0.785,
-    'Romanian Liga I': 0.780,
-    'Slovak Super Liga': 0.775,
-    'Hungarian NB I': 0.770,
-    'Cypriot First Division': 0.765,
-    'Bulgarian First League': 0.760,
-    'Scottish Championship': 0.755,
-    'J1 League': 0.750,
-    'K League 1': 0.745,
-    'Allsvenskan': 0.740,
-    'Eliteserien': 0.735,
-    'A-League': 0.730,
-    'Other Leagues': 0.700
+    'Premier League': 1.0000,
+    'Serie A TIM': 0.9925,
+    'LaLiga EA Sports': 0.9850,
+    'Bundesliga': 0.9775,
+    'Ligue 1 McDonald\'s': 0.9700,
+    'Eredivisie': 0.9625,
+    'Liga Portugal Betclic': 0.9550,
+    '3F Superliga': 0.9475,
+    'Allsvenskan': 0.9400,
+    'Trendyol Süper Lig': 0.9325,
+    'cinch Premiership': 0.9250,
+    'Admiral Bundesliga': 0.9175,
+    'Jupiler Pro League': 0.9100,
+    'Raiffeisen Super League': 0.9025,
+    'Super League Interwetten': 0.8950,
+    'Favbet Liha': 0.8875,
+    'Mozzart Super Liga': 0.8800,
+    'Sky Bet Championship': 0.8725,
+    'SuperSport HNL': 0.8650,
+    'Cyta Championship': 0.8575,
+    'Ligat Tel Aviv Stock Exchange': 0.8500,
+    'FORTUNA:LIGA': 0.8425,
+    'NIKÉ Liga': 0.8350,
+    'PKO Ekstraklasa': 0.8275,
+    '2. Bundesliga': 0.8200,
+    'OTP Bank Liga': 0.8125,
+    'Eliteserien': 0.8050,
+    'Serie BKT': 0.7975,
+    'Casa Liga I': 0.7900,
+    'Prva Liga Telemach': 0.7825,
+    'Ligue 2 BKT': 0.7750,
+    'Tinkoff Russian Premier Liga': 0.7675,
+    'Efbet League': 0.7600,
+    'm:tel Premijer liga Bosne i Hercegovine': 0.7525,
+    'Qazaqstan Premer Lïgası': 0.7450,
+    'LaLiga 2 Hypermotion': 0.7375,
+    'SSE Airtricity League Premier Division': 0.7300,
+    'Keuken Kampioen Divisie': 0.7225,
+    'Superettan': 0.7150,
+    'Sky Bet League One': 0.7075,
+    'Crystalbet Erovnuli Liga': 0.7000,
+    'Azərbaycan Premyer Liqası': 0.6925,
+    'Liga Portugal 2 SABSEG': 0.6850,
+    'Brack.ch Challenge League': 0.6775,
+    'Spor Toto 1. Lig': 0.6700,
+    'Belarusbank Vyšejšaja Liha': 0.6625,
+    'Pepsi Max Deild': 0.6550,
+    'OBOS-Ligaen': 0.6475,
+    'Veikkausliiga': 0.6400,
+    'Sports Direct Premiership': 0.6325,
+    'Other Leagues': 0.6225
 }
 
 # --- Moneyball score computation ---
-def compute_moneyball_score(row, metric_weights):
+def compute_moneyball_score(row, metric_weights, value_weight=0.3, league_weight=0.3):
     try:
         value = extract_value(row['Transfer Value'])
         if not value:
@@ -104,10 +116,18 @@ def compute_moneyball_score(row, metric_weights):
 
     coeff = 1.0
     if 'Division' in row and isinstance(row['Division'], str):
+        matched = False
         for league, factor in LEAGUE_COEFFICIENTS.items():
             if league.lower() in row['Division'].lower():
                 coeff = factor
+                matched = True
                 break
+        if not matched:
+            coeff = LEAGUE_COEFFICIENTS.get('Other Leagues', 0.6225)  # default fallback
+    else:
+        coeff = LEAGUE_COEFFICIENTS.get('Other Leagues', 0.6225)
+
+    coeff = (1 - league_weight) * 1.0 + league_weight * coeff
 
     age_penalty = 1 + (row['Age'] - 18) * 0.02 if 'Age' in row else 1
 
@@ -119,9 +139,20 @@ def compute_moneyball_score(row, metric_weights):
 
     reliability_bonus = min(1.0, minutes_played / 2000)
 
-    value_factor = 1 + (value / 1_000_000) * 0.1  # reduced impact of value
+    value_factor = 1.0 if value_weight == 0 else 1 + ((value / 1_000_000) * value_weight)
     score = ((perf_score / total_weight) * coeff * reliability_bonus) / (value_factor * age_penalty)
     return round(score, 3)
+
+def project_moneyball_score_at_age(row, target_age=25, metric_weights=None):
+    if not metric_weights or 'Age' not in row or 'Moneyball Score' not in row:
+        return 0
+    try:
+        current_age_penalty = 1 + (row['Age'] - 18) * 0.02
+        projected_age_penalty = 1 + (target_age - 18) * 0.02
+        projected_score = row['Moneyball Score'] * (projected_age_penalty / current_age_penalty)
+        return round(projected_score, 3)
+    except:
+        return 0
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Moneyball Football Dashboard", layout="wide")
@@ -176,32 +207,98 @@ if uploaded_file:
     val_lower = st.sidebar.number_input("Min Transfer Value (Millions)", min_value=0.0, max_value=500.0, value=1.5, step=0.5)
     val_upper = st.sidebar.number_input("Max Transfer Value (Millions)", min_value=0.0, max_value=500.0, value=value_max, step=0.5)
 
+    st.sidebar.markdown("---")
+    show_percentiles = st.sidebar.checkbox("Show Percentile Rankings", value=False)
+
     # Apply filters (convert inputs back to base unit)
     df = df[(df['Age'] >= age_lower) & (df['Age'] <= age_upper)]
     df = df[df['Numeric Value'].between(val_lower * 1_000_000, val_upper * 1_000_000, inclusive='both')]
 
+    # --- Displaying Data ---
     position = st.selectbox("Select Position", list(POSITION_METRICS.keys()), index=list(POSITION_METRICS.keys()).index(detected_position) if detected_position else 0)
     metrics = POSITION_METRICS[position]
+    st.sidebar.markdown("### Adjust Metric Weights")
+    with st.sidebar.expander(f"⚖️ Weights for {position}", expanded=False):
+        weight_inputs = {}
+        for metric, default_weight in metrics.items():
+            weight_inputs[metric] = st.slider(
+                label=metric,
+                min_value=0.0,
+                max_value=1.0,
+                value=float(default_weight),
+                step=0.01,
+                key=f"{position}_{metric}"
+            )
+    st.sidebar.markdown("### Global Factors")
+    value_impact = st.sidebar.slider(
+        "Transfer Value Impact", 0.0, 1.0, value=0.3, step=0.01
+    )
+    league_impact = st.sidebar.slider(
+        "League Coefficient Impact", 0.0, 1.0, value=0.3, step=0.01
+    )
+
+    # Normalize the custom weights
+    total = sum(weight_inputs.values()) or 1  # avoid div by zero
+    normalized_weights = {k: v / total for k, v in weight_inputs.items()}
+
+    # Compute Percentile Columns
+    for metric in metrics:
+        col_name = f"{metric} Percentile"
+        try:
+            df[col_name] = pd.to_numeric(df[metric].astype(str).str.replace('%', '').str.replace(',', ''), errors='coerce')
+            df[col_name] = df[col_name].rank(pct=True) * 100
+            df[col_name] = df[col_name].round(1)
+        except:
+            df[col_name] = None
+
     st.markdown(f"**Evaluating {position}** using: {', '.join(metrics)}")
 
-    df['Moneyball Score'] = df.apply(lambda row: compute_moneyball_score(row, metrics), axis=1)
+    df['Moneyball Score'] = df.apply(
+        lambda row: compute_moneyball_score(row, normalized_weights, value_impact, league_impact),
+        axis=1
+    )
     df = df.sort_values(by='Moneyball Score', ascending=False).reset_index(drop=True)
+    df['Projected Score (25)'] = df.apply(
+        lambda row: project_moneyball_score_at_age(row, target_age=25, metric_weights=metrics), axis=1
+    )
 
-    top_n = st.slider("Number of top players to display", 5, 50, 10)
+    top_n = 10  # Always show top 10
 
     available_cols = df.columns.tolist()
     base_cols = [col for col in ['Name', 'Club', 'Division', 'Age', 'Salary', 'Transfer Value', 'Apps', 'Moneyball Score'] if col in available_cols]
     metric_cols = [col for col in metrics if col in available_cols]
-    display_cols = base_cols + metric_cols
+
+    if show_percentiles:
+        percentile_cols = [f"{m} Percentile" for m in metrics if f"{m} Percentile" in df.columns]
+        display_cols = base_cols + percentile_cols
+    else:
+        metric_cols = [col for col in metrics if col in df.columns]
+        display_cols = base_cols + metric_cols
 
     st.subheader(f"Top {position} Players")
-    st.dataframe(df[display_cols].head(top_n))
 
-    st.subheader("Score Distribution")
-    fig = px.bar(df.head(top_n), x='Name', y='Moneyball Score', color='Club', title=f'Top {position} by Moneyball Score',
-             labels={'Moneyball Score': 'Performance-to-Value Ratio'}, height=500)
-    fig.update_layout(xaxis_tickangle=-45)
-    st.plotly_chart(fig)
+    if show_percentiles:
+        percentile_cols = [f"{m} Percentile" for m in metrics if f"{m} Percentile" in df.columns]
+        display_cols = base_cols + percentile_cols
+
+        def color_text_by_percentile(val):
+            try:
+                norm_val = float(val) / 100
+                rgba = cm.RdYlGn(norm_val)
+                r, g, b = [int(255 * x) for x in rgba[:3]]
+                return f'color: rgb({r},{g},{b})'
+            except:
+                return ''
+
+        styled_df = df[display_cols].head(top_n).style\
+            .applymap(color_text_by_percentile, subset=percentile_cols)\
+            .format("{:.1f}", subset=percentile_cols)
+
+        st.dataframe(styled_df)
+    else:
+        metric_cols = [col for col in metrics if col in df.columns]
+        display_cols = base_cols + metric_cols
+        st.dataframe(df[display_cols].head(top_n))
 
     st.subheader("Value for Money")
     scatter_df = df.dropna(subset=['Moneyball Score', 'Numeric Value'])
@@ -211,24 +308,57 @@ if uploaded_file:
     fig2.update_layout(height=600)
     st.plotly_chart(fig2)
 
-    st.subheader("Compare Players via Radar Chart")
-    selected_players = st.multiselect("Select up to 3 players for radar comparison", df['Name'].head(top_n).tolist())
-
-    if selected_players:
-        radar_df = df[df['Name'].isin(selected_players)][['Name'] + metrics].dropna()
-        fig3 = go.Figure()
-        for _, row in radar_df.iterrows():
-            values = [float(str(row[m]).replace('%','').replace(',','').strip()) if m in row else 0 for m in metrics]
-            fig3.add_trace(go.Scatterpolar(
-                r=values,
-                theta=metrics,
-                fill='toself',
-                name=row['Name']
-            ))
-        fig3.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True)
-        st.plotly_chart(fig3)
-
     st.download_button("Download Ranked Players CSV", df[display_cols].to_csv(index=False), file_name="ranked_players.csv")
+
+    # --- Hidden Gems Detection (Refined) ---
+    st.subheader("🔍 Hidden Gems: High Performers, Low Cost")
+
+    # Exclude rows with invalid scores or missing values
+    valid_df = df[(df['Moneyball Score'] > 0) & (df['Numeric Value'].notnull())]
+
+    # Compute value and score percentiles on valid subset
+    valid_df['Value Percentile'] = valid_df['Numeric Value'].rank(pct=True)
+    valid_df['Score Percentile'] = valid_df['Moneyball Score'].rank(pct=True)
+
+    # Hidden gems = low market value (bottom 40%) & high score (top 30%)
+    gems_df = valid_df[(valid_df['Value Percentile'] <= 0.4) & (valid_df['Score Percentile'] >= 0.7)]
+
+    if not gems_df.empty:
+        st.markdown(f"Found **{len(gems_df)} hidden gems**. These players have high performance scores relative to their low market value.")
+
+        if show_percentiles:
+            gem_cols = [col for col in display_cols if 'Percentile' in col]
+            styled_gems = gems_df[display_cols].head(10).style\
+                .applymap(color_text_by_percentile, subset=gem_cols)\
+                .format("{:.1f}", subset=gem_cols)
+            st.dataframe(styled_gems)
+        else:
+            st.dataframe(gems_df[display_cols].head(10))
+
+        fig3 = px.scatter(gems_df, x='Numeric Value', y='Moneyball Score', hover_data=['Name', 'Club'],
+                        color='Score Percentile', color_continuous_scale=px.colors.sequential.Viridis,
+                        title='Hidden Gems Highlighted in Market',
+                        labels={'Numeric Value': 'Transfer Value (M)', 'Moneyball Score': 'Performance-to-Value Ratio', 'Score Percentile': 'Performance Score Percentile'})
+        fig3.update_traces(marker=dict(size=10, opacity=0.6))
+        fig3.update_layout(legend_title_text='Hidden Gem', height=500)
+        st.plotly_chart(fig3)
+    else:
+        st.info("No hidden gems matched the current filters.")
+
+    st.subheader("📈 Age Projection (Peak at 25)")
+
+    growth_df = df.copy()
+    growth_df['Score Growth %'] = 100 * (growth_df['Projected Score (25)'] - growth_df['Moneyball Score']) / growth_df['Moneyball Score']
+    growth_df = growth_df.sort_values(by='Projected Score (25)', ascending=False)
+
+    cols_to_show = ['Name', 'Age', 'Moneyball Score', 'Projected Score (25)', 'Score Growth %']
+    st.dataframe(
+        growth_df[cols_to_show].head(10).style.format({
+            'Moneyball Score': '{:.2f}',
+            'Projected Score (25)': '{:.2f}',
+            'Score Growth %': '{:.1f}'
+        })
+    )
 
 else:
     st.info("Upload an HTML file containing a table of players with stats.")
