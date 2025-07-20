@@ -984,7 +984,7 @@ def display_hidden_gems(df):
     
     # Calculate percentiles
     valid_df['Value Percentile'] = valid_df['Numeric Value'].rank(pct=True)
-    valid_df['Score Percentile'] = valid_df['Moneyball Score'].rank(pct=True)
+    valid_df['Score Percentile'] = round(valid_df['Moneyball Score'].rank(pct=True), 2)
     
     # Find hidden gems
     gems_df = valid_df[
