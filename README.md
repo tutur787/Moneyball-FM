@@ -1,119 +1,122 @@
-# ⚽ Moneyball Football Dashboard
+# Moneyball Football Dashboard
 
-A data-driven scouting tool inspired by the *Moneyball* philosophy, designed to identify undervalued football talent across global leagues using real match statistics. Built with **Python**, **Streamlit**, and **Plotly**, this dashboard parses Football Manager export files to rank players based on performance vs market value.
-
----
-
-## 🚀 Features
-
-* 📅 Upload Football Manager HTML player exports
-* 🔍 Auto-detect and manually select player positions (e.g., CB, CDM, ST, etc.)
-* 📊 Position-specific performance metrics used for ranking
-* 🌍 League-strength adjustment via coefficient scaling (350+ leagues)
-* 🧠 Calculates "Moneyball Score" = performance ÷ market value
-* 📈 Visualizations:
-
-  * Bar charts of top players
-  * Scatter plots of value vs. performance
-  * Radar chart comparisons for up to 3 players
-* 📄 Export ranked players as CSV
+An interactive Streamlit dashboard that applies a Moneyball-style approach to football scouting using real player data. Upload an HTML export from Football Manager and analyze player performance, market value, role suitability, and more.
 
 ---
 
-## 📂 Input Format
+## 🏢 Features
 
-Upload an **HTML file** exported from **Football Manager** that includes a table of player stats. The file should contain at minimum the following columns:
-
-* `Name`
-* `Position`
-* `Club`
-* `Division`
-* `Transfer Value`
-* `Age`
-* And various performance metrics depending on position
-
-All uploaded players are assumed to be **22 years old or younger**.
-
-The view can be found in the `fmdatalab_moneyball_player_search_view.fmf` file, which needs to be imported in Football Manager. Then select the first row and press ctrl-a to select all players, then press ctrl-p and choose 'Web Page' to export the data as HTML.
+* **Auto-Detect Position:** Automatically identifies the primary position from the uploaded filename.
+* **Custom Weighting:** Fine-tune performance metrics and adjust transfer value/league strength impact.
+* **Moneyball Score:** Quantitative score representing value-for-money, factoring performance, reliability, age, and league quality.
+* **Hidden Gems Detector:** Find underrated high-performing players with low transfer values.
+* **Role Assignment:** Intelligent best-fit role suggestions for each position using FM role profiles.
+* **Percentile Rankings:** Benchmark players across core metrics relative to peers.
+* **Age Projections:** Forecast player potential at age 25.
+* **Interactive Visualizations:** Scatter plots for market analysis and value discovery.
 
 ---
 
-## 🧶 How the Moneyball Score Works
+## 🚀 Getting Started
 
-```
-Moneyball Score = (Weighted Performance Metrics × League Coefficient) / (Transfer Value + 1)
-```
-
-* Each position uses its most relevant KPIs:
-
-  * Example: `Gls/90`, `xG`, `Shots` for strikers
-  * `Tck/90`, `Hdr %`, `Clear` for center backs
-* League coefficients adjust scores based on difficulty level:
-
-  * Example: Premier League = 1.00, Serie B = 0.86, MLS = 0.84, etc.
-
----
-
-## 📊 Visualizations
-
-* **Top Players by Moneyball Score** – sortable data table
-* **Score Distribution** – bar chart of top N players
-* **Value for Money** – scatter plot of Score vs. Transfer Value
-* **Radar Comparison** – choose up to 3 players to compare across key metrics
-
----
-
-## 🛠️ Installation
+### 1. Clone the Repo
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/moneyball-dashboard.git
-cd moneyball-dashboard
+git clone https://github.com/yourusername/moneyball-fm-dashboard.git
+cd moneyball-fm-dashboard
+```
 
-# Install dependencies
+### 2. Install Dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-# Run the Streamlit app
+### 3. Run the App
+
+```bash
 streamlit run moneyball_dashboard.py
 ```
 
 ---
 
-## 📋 Requirements
+## 🗃️ Data Input
 
-* Python 3.8 or newer
-* Streamlit
-* Pandas
-* Plotly
+* Upload an `.html` file exported from Football Manager (via "Print" -> "Web Page").
+* Make sure the file contains the position in the filename at the beginning (e.g., `GK_2023-10-01.html` for Goalkeepers).
 
 ---
 
-## 📝 Notes
+## 🌐 Supported Positions
 
-* League coefficients are automatically applied using a comprehensive FM-based tier system (\~350+ leagues).
-* Radar charts auto-scale metrics and support mixed stat types.
-* If a division is not matched to a known league, a fallback coefficient is used.
+The dashboard supports scoring and profiling for:
 
----
-
-## 🖼️ Screenshots
-
-To be added:
-
-* Top Players Table
-* Scatter Plot
-* Radar Comparison
+* Goalkeeper (GK)
+* Center-Back (CB)
+* Full-Back / Wing-Back (RB/LB, RWB/LWB)
+* Defensive / Central / Attacking Midfielders (CDM, CM, CAM)
+* Wingers (LM/RM, RW/LW)
+* Strikers (ST)
 
 ---
 
-## 📄 License
+## ⚖️ Scoring Logic
 
-This project is licensed under the MIT License.
-Feel free to use, modify, and share with attribution.
+* **Performance Score:** Weighted sum of key stats.
+* **League Adjustment:** Normalized using predefined league coefficients.
+* **Age Penalty:** Younger players get higher future upside.
+* **Reliability Bonus:** Players with higher minutes are scored more favorably.
+* **Value Factor:** Transfer value penalizes high-cost players.
 
 ---
 
-## 👤 Author
+## 🪙 Role Detection
 
-Developed by **Arthur Acker**
-Inspired by *Moneyball* principles and optimized for Football Manager scouting data.
+Each player is evaluated against FM-style role profiles (e.g., Ball-Winning Midfielder, Inverted Winger, False Nine) using thresholds on key stats.
+
+---
+
+## 🏦 League Coefficients
+
+Strength of competition is factored using coefficients derived from major and minor leagues. Lower-tier leagues are adjusted down to normalize performance.
+
+---
+
+## 📚 File Structure
+
+* `app.py`: Main Streamlit dashboard
+* `requirements.txt`: Python dependencies
+* `README.md`: Project documentation
+
+---
+
+## 🚫 Disclaimer
+
+This tool is intended for analytical and scouting purposes only. It is not affiliated with Football Manager, any clubs, or players.
+
+---
+
+## 🙌 Contributing
+
+Pull requests are welcome! For major changes, open an issue first to discuss what you would like to change.
+
+---
+
+## 🚀 Future Improvements
+
+* CSV export of role matches
+* Multiple file upload
+* Role performance clustering
+* Dynamic radar chart for individual players
+
+---
+
+## 🌟 Author
+
+Developed by \[Your Name]. For questions or feedback, please open an issue on GitHub.
+
+---
+
+## 📁 License
+
+[MIT](LICENSE)
