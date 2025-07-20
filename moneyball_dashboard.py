@@ -131,6 +131,279 @@ FM_POSITION_MAP = {
     'ST': ['ST', 'CF']
 }
 
+ROLE_PROFILES = {
+    'GK': {
+        'Goalkeeper': {},
+        'Sweeper Keeper': {
+            'Pas %': 70,
+            'Av Rat': 6.8,
+            'Conc': 10
+        },
+    },
+    'CB': {
+        'Central Defender': {
+            'Tck/90': 2.0,
+            'Hdr %': 60
+        },
+        'Ball-Playing Defender': {
+            'Pas %': 80,
+            'Ps C/90': 40,
+            'K Ps/90': 0.5
+        },
+        'No-Nonsense Centre-Back': {
+            'Clear': 5.0,
+            'Hdr %': 70,
+            'Pas %': 75
+        },
+        'Libero': {
+            'Ps C/90': 45,
+            'Drb/90': 0.5,
+            'K Ps/90': 0.4
+        },
+        'Wide Centre-Back': {
+            'Cr C': 0.5,
+            'Ps C/90': 35
+        },
+    },
+    'RB/LB': {
+        'Full-Back': {
+            'Tck/90': 2.0,
+            'Pas %': 70
+        },
+        'Wing-Back': {
+            'Cr A': 0.8,
+            'Asts/90': 0.15,
+            'Drb/90': 1.0
+        },
+        'Complete Wing-Back': {
+            'Cr A': 1.2,
+            'Tck/90': 2.0,
+            'Asts/90': 0.2
+        },
+        'Inverted Full-Back': {
+            'Pas %': 82,
+            'Ps C/90': 35,
+            'Cr C': 1.0
+        },
+        'No-Nonsense Full-Back': {
+            'Tck/90': 2.5,
+            'Clear': 3.0,
+            'Cr A': 0.5
+        },
+    },
+    'RWB/LWB': {
+        'Wing-Back': {
+            'Cr A': 1.0,
+            'Drb/90': 1.5
+        },
+        'Complete Wing-Back': {
+            'Cr A': 1.5,
+            'Asts/90': 0.25,
+            'Tck/90': 1.8
+        },
+        'Inverted Wing-Back': {
+            'Pas %': 80,
+            'K Ps/90': 0.7,
+            'Ps C/90': 40
+        },
+        'Defensive Winger': {
+            'Tck/90': 2.0,
+            'Poss Won/90': 2.0,
+            'Cr A': 1.0
+        },
+    },
+    'CDM': {
+        'Defensive Midfielder': {
+            'Tck/90': 2.2,
+            'Pas %': 75
+        },
+        'Anchor Man': {
+            'Tck/90': 2.8,
+            'Int/90': 2.2,
+            'K Ps/90': 0.5
+        },
+        'Deep-Lying Playmaker': {
+            'Pas %': 83,
+            'K Ps/90': 0.8,
+            'Ps C/90': 45
+        },
+        'Ball-Winning Midfielder': {
+            'Tck/90': 3.0,
+            'Poss Won/90': 2.5
+        },
+        'Regista': {
+            'Pas %': 85,
+            'K Ps/90': 1.0,
+            'Asts/90': 0.15
+        },
+        'Half-Back': {
+            'Int/90': 2.0,
+            'Ps C/90': 40,
+            'Tck/90': 2.0
+        },
+        'Segundo Volante': {
+            'Tck/90': 2.0,
+            'Gls/90': 0.08,
+            'Shot/90': 0.8
+        },
+        'Roaming Playmaker': {
+            'K Ps/90': 0.9,
+            'Drb/90': 1.0,
+            'Pas %': 82
+        },
+    },
+    'CM': {
+        'Central Midfielder': {
+            'Pas %': 75,
+            'Tck/90': 1.5
+        },
+        'Box-to-Box Midfielder': {
+            'Poss Won/90': 1.8,
+            'Shot/90': 1.0,
+            'Asts/90': 0.1
+        },
+        'Advanced Playmaker': {
+            'K Ps/90': 1.0,
+            'Asts/90': 0.2,
+            'Cr A': 0.8
+        },
+        'Mezzala': {
+            'Drb/90': 1.5,
+            'Cr C': 0.8,
+            'Gls/90': 0.1
+        },
+        'Carrilero': {
+            'Tck/90': 2.0,
+            'Pas %': 82,
+            'Poss Won/90': 1.5
+        },
+        'Ball-Winning Midfielder': {
+            'Tck/90': 2.8,
+            'Poss Won/90': 2.2
+        },
+        'Deep-Lying Playmaker': {
+            'Pas %': 84,
+            'K Ps/90': 0.9
+        },
+    },
+    'CAM': {
+        'Attacking Midfielder': {
+            'K Ps/90': 0.8,
+            'Asts/90': 0.25
+        },
+        'Advanced Playmaker': {
+            'K Ps/90': 1.2,
+            'Pas %': 85,
+            'Asts/90': 0.3
+        },
+        'Shadow Striker': {
+            'Gls/90': 0.3,
+            'Shot/90': 2.0,
+            'xG': 0.25
+        },
+        'Trequartista': {
+            'Drb/90': 2.0,
+            'K Ps/90': 1.0,
+            'Cr A': 1.2
+        },
+        'Enganche': {
+            'Pas %': 88,
+            'K Ps/90': 1.3,
+            'Drb/90': 1.5
+        },
+    },
+    'LM/RM': {
+        'Wide Midfielder': {
+            'Cr C': 1.0,
+            'Tck/90': 1.0
+        },
+        'Winger': {
+            'Cr A': 1.5,
+            'Drb/90': 2.2,
+            'Pas %': 70
+        },
+        'Wide Playmaker': {
+            'K Ps/90': 1.0,
+            'Asts/90': 0.25,
+            'Pas %': 82
+        },
+        'Inverted Winger': {
+            'Gls/90': 0.2,
+            'Shot/90': 1.8,
+            'Cr C': 1.0
+        },
+        'Defensive Winger': {
+            'Tck/90': 1.8,
+            'Poss Won/90': 1.5
+        },
+    },
+    'RW/LW': {
+        'Winger': {
+            'Cr A': 1.2,
+            'Drb/90': 2.5
+        },
+        'Inside Forward': {
+            'Shot/90': 2.2,
+            'Gls/90': 0.25,
+            'xG': 0.2
+        },
+        'Inverted Winger': {
+            'Cr C': 1.5,
+            'Shot/90': 2.0,
+            'K Ps/90': 0.8
+        },
+        'Wide Target Forward': {
+            'Hdr %': 60,
+            'Av Rat': 6.8,
+            'Shot/90': 1.5
+        },
+        'Raumdeuter': {
+            'Gls/90': 0.3,
+            'xG': 0.25,
+            'Poss Won/90': 1.0
+        },
+        'Wide Playmaker': {
+            'K Ps/90': 1.1,
+            'Asts/90': 0.3
+        },
+    },
+    'ST': {
+        'Advanced Forward': {
+            'Gls/90': 0.35,
+            'Shot/90': 2.0
+        },
+        'Poacher': {
+            'Gls/90': 0.5,
+            'ShT %': 40,
+            'xG': 0.35
+        },
+        'Target Man': {
+            'Hdr %': 65,
+            'K Hdrs/90': 0.8,
+            'Av Rat': 6.8
+        },
+        'Complete Forward': {
+            'Gls/90': 0.35,
+            'Asts/90': 0.15,
+            'Drb/90': 1.2
+        },
+        'Pressing Forward': {
+            'Poss Won/90': 2.0,
+            'Tck/90': 1.0
+        },
+        'Deep-Lying Forward': {
+            'K Ps/90': 0.8,
+            'Asts/90': 0.2,
+            'Pas %': 75
+        },
+        'False Nine': {
+            'K Ps/90': 1.0,
+            'Asts/90': 0.25,
+            'Pas %': 80
+        },
+    },
+}
+
 # ====================================================================================
 # UTILITY FUNCTIONS
 # ====================================================================================
@@ -280,6 +553,41 @@ def assign_player_tags(row, position, metrics):
 
     return ", ".join(tags) if tags else "Balanced"
 
+def infer_role(row, position):
+    def val(metric):
+        try:
+            v = row.get(metric, '-')
+            if isinstance(v, str):
+                v = v.strip().replace('%', '').replace(',', '')
+                if v == '-' or v == '':
+                    return 0.0
+            return float(v)
+        except:
+            return 0.0
+
+    roles = ROLE_PROFILES.get(position, {})
+    role_scores = {}
+
+    for role, thresholds in roles.items():
+        if not thresholds:
+            continue
+        score = 0
+        total_weight = 0
+        for metric, threshold in thresholds.items():
+            player_val = val(metric)
+            # Weight is how far above the threshold the value is, capped at 2x
+            if player_val >= threshold:
+                weight = min((player_val / threshold), 2.0)
+                score += weight
+            total_weight += 1
+        role_scores[role] = score / total_weight if total_weight > 0 else 0
+
+    if not role_scores:
+        return 'Unclassified'
+
+    best_role = max(role_scores, key=role_scores.get)
+    return best_role if role_scores[best_role] > 0 else 'Unclassified'
+
 # ====================================================================================
 # DATA PROCESSING FUNCTIONS
 # ====================================================================================
@@ -322,7 +630,7 @@ def prepare_display_columns(df, metrics, show_percentiles=False):
     available_cols = df.columns.tolist()
     base_cols = [col for col in ['Name', 'Club', 'Division', 'Age', 'Salary', 
                                   'Transfer Value', 'Apps', 'Moneyball Score', 
-                                  'Style Tags'] if col in available_cols]
+                                  'Style Tags', 'Inferred Role'] if col in available_cols]
     
     if show_percentiles:
         percentile_cols = [f"{m} Percentile" for m in metrics if f"{m} Percentile" in df.columns]
@@ -463,7 +771,7 @@ def create_sidebar_filters(df):
         "Min Age", min_value=15, max_value=25, value=age_min
     )
     st.session_state['age_upper'] = st.sidebar.number_input(
-        "Max Age", min_value=15, max_value=45, value=age_max
+        "Max Age", min_value=15, max_value=45, value=25
     )
 
     # Value filters
@@ -490,13 +798,6 @@ def create_sidebar_filters(df):
         st.session_state['selected_leagues'] = st.sidebar.multiselect(
             "Filter by League/Division", options=league_options
         )
-
-    # Apply style tag filter if selected
-    selected_tags = st.sidebar.multiselect(
-        "Filter by Style Tags", 
-        options=df['Style Tags'].unique()
-    )
-    st.session_state['selected_tags'] = selected_tags
 
     st.sidebar.markdown("---")
     st.session_state['show_percentiles'] = st.sidebar.checkbox(
@@ -525,11 +826,6 @@ def apply_filters(df):
     selected_leagues = st.session_state.get('selected_leagues', [])
     if selected_leagues and 'Division' in df.columns:
         df = df[df['Division'].isin(selected_leagues)]
-
-    # Style tag filter
-    selected_tags = st.session_state.get('selected_tags', [])
-    if selected_tags and 'Style Tags' in df.columns:
-        df = df[df['Style Tags'].isin(selected_tags)]
     
     return df
 
@@ -592,6 +888,24 @@ def process_player_data(df, position, metrics, normalized_weights, value_impact,
         lambda row: assign_player_tags(row, position, metrics), 
         axis=1
     )
+    
+    # Apply style tag filter if selected
+    selected_tags = st.sidebar.multiselect(
+        "Filter by Style Tags", 
+        options=df['Style Tags'].unique()
+    )
+    if selected_tags:
+        df = df[df['Style Tags'].isin(selected_tags)]
+
+    # Apply inferred roles
+
+    df['Inferred Role'] = df.apply(lambda r: infer_role(r, position), axis=1)
+    selected_roles = st.sidebar.multiselect(
+        "Filter by Inferred Role", 
+        options=df['Inferred Role'].unique()
+    )
+    if selected_roles:
+        df = df[df['Inferred Role'].isin(selected_roles)]
     
     # Store benchmarks for display
     st.session_state['benchmarks'] = benchmarks
