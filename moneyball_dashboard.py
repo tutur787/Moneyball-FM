@@ -553,40 +553,91 @@ def assign_player_tags(row, position, metrics):
 
     return ", ".join(tags) if tags else "Balanced"
 
-def infer_role(row, position):
+def detect_player_roles(row, position, return_scores=False):
+    """
+    Detect suitable roles for a player based on their stats.
+    Returns either the best role or all suitable roles with scores.
+    """
     def val(metric):
         try:
             v = row.get(metric, '-')
             if isinstance(v, str):
                 v = v.strip().replace('%', '').replace(',', '')
-                if v == '-' or v == '':
+                if v == '-' or v == '' or v.lower() == 'nan':
                     return 0.0
             return float(v)
         except:
             return 0.0
-
+    
     roles = ROLE_PROFILES.get(position, {})
     role_scores = {}
-
+    
+    # Handle special cases
+    if position == 'GK' and 'Goalkeeper' in roles:
+        role_scores['Goalkeeper'] = 0.5  # Base score for default role
+    
     for role, thresholds in roles.items():
         if not thresholds:
             continue
+            
         score = 0
-        total_weight = 0
+        met_requirements = 0
+        total_requirements = len(thresholds)
+        
         for metric, threshold in thresholds.items():
             player_val = val(metric)
-            # Weight is how far above the threshold the value is, capped at 2x
-            if player_val >= threshold:
-                weight = min((player_val / threshold), 2.0)
-                score += weight
-            total_weight += 1
-        role_scores[role] = score / total_weight if total_weight > 0 else 0
-
+            
+            # Handle reverse comparisons (where lower is better)
+            if metric in ['Conc', 'Cr C', 'Cr A', 'Poss Won/90', 'Drb/90']:
+                # Check context for reverse comparison
+                if (role == 'Sweeper Keeper' and metric == 'Conc') or \
+                   (role == 'Inverted Full-Back' and metric == 'Cr C') or \
+                   (role == 'No-Nonsense Full-Back' and metric == 'Cr A') or \
+                   (role == 'Defensive Winger' and metric == 'Cr A') or \
+                   (role == 'Raumdeuter' and metric == 'Poss Won/90') or \
+                   (role == 'Enganche' and metric == 'Drb/90'):
+                    if player_val <= threshold:
+                        met_requirements += 1
+                        score += 1.5 - (player_val / threshold if threshold > 0 else 0)
+                else:
+                    # Normal comparison
+                    if player_val >= threshold:
+                        met_requirements += 1
+                        score += min((player_val / threshold), 2.0)
+            else:
+                # Normal comparison (higher is better)
+                if player_val >= threshold:
+                    met_requirements += 1
+                    # Bonus for exceeding threshold
+                    score += min((player_val / threshold), 2.0)
+        
+        # Calculate final score - must meet at least 60% of requirements
+        if met_requirements >= (total_requirements * 0.6):
+            role_scores[role] = score / total_requirements
+        
+    # If no roles qualify, assign default
     if not role_scores:
-        return 'Unclassified'
-
-    best_role = max(role_scores, key=role_scores.get)
-    return best_role if role_scores[best_role] > 0 else 'Unclassified'
+        default_roles = {
+            'GK': 'Goalkeeper',
+            'CB': 'Central Defender',
+            'RB/LB': 'Full-Back',
+            'RWB/LWB': 'Wing-Back',
+            'CDM': 'Defensive Midfielder',
+            'CM': 'Central Midfielder',
+            'CAM': 'Attacking Midfielder',
+            'LM/RM': 'Wide Midfielder',
+            'RW/LW': 'Winger',
+            'ST': 'Advanced Forward'
+        }
+        return default_roles.get(position, 'Unclassified')
+    
+    if return_scores:
+        # Return all roles with scores > 0.5, sorted by score
+        suitable_roles = {k: v for k, v in role_scores.items() if v > 0.5}
+        return sorted(suitable_roles.items(), key=lambda x: x[1], reverse=True)
+    else:
+        # Return the best role
+        return max(role_scores, key=role_scores.get)
 
 # ====================================================================================
 # DATA PROCESSING FUNCTIONS
@@ -630,7 +681,7 @@ def prepare_display_columns(df, metrics, show_percentiles=False):
     available_cols = df.columns.tolist()
     base_cols = [col for col in ['Name', 'Club', 'Division', 'Age', 'Salary', 
                                   'Transfer Value', 'Apps', 'Moneyball Score', 
-                                  'Style Tags', 'Inferred Role'] if col in available_cols]
+                                  'Style Tags', 'Best Role'] if col in available_cols]
     
     if show_percentiles:
         percentile_cols = [f"{m} Percentile" for m in metrics if f"{m} Percentile" in df.columns]
@@ -899,13 +950,16 @@ def process_player_data(df, position, metrics, normalized_weights, value_impact,
 
     # Apply inferred roles
 
-    df['Inferred Role'] = df.apply(lambda r: infer_role(r, position), axis=1)
+    df['Best Role'] = df.apply(
+        lambda row: detect_player_roles(row, position), 
+        axis=1
+    )
     selected_roles = st.sidebar.multiselect(
-        "Filter by Inferred Role", 
-        options=df['Inferred Role'].unique()
+        "Filter by Best Role", 
+        options=df['Best Role'].unique()
     )
     if selected_roles:
-        df = df[df['Inferred Role'].isin(selected_roles)]
+        df = df[df['Best Role'].isin(selected_roles)]
     
     # Store benchmarks for display
     st.session_state['benchmarks'] = benchmarks
