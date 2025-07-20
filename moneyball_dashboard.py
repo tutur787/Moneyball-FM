@@ -679,7 +679,7 @@ def add_percentile_columns(df, metrics):
 def prepare_display_columns(df, metrics, show_percentiles=False):
     """Prepare columns for display based on user preferences"""
     available_cols = df.columns.tolist()
-    base_cols = [col for col in ['Name', 'Club', 'Division', 'Age', 'Salary', 
+    base_cols = [col for col in ['Name', 'Club', 'Nat', 'Division', 'Age', 'Salary', 
                                   'Transfer Value', 'Apps', 'Moneyball Score', 
                                   'Style Tags', 'Best Role'] if col in available_cols]
     
