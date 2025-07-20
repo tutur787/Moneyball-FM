@@ -643,24 +643,6 @@ def detect_player_roles(row, position, return_scores=False):
 # DATA PROCESSING FUNCTIONS
 # ====================================================================================
 
-def calculate_positional_benchmarks(df, metrics):
-    """Calculate benchmark stats for the selected position"""
-    benchmarks = {}
-    for metric in metrics:
-        try:
-            positional_values = pd.to_numeric(
-                df[metric].replace('-', None), 
-                errors='coerce'
-            )
-            benchmarks[metric] = {
-                'mean': positional_values.mean(),
-                'median': positional_values.median(),
-                '80th': positional_values.quantile(0.80)
-            }
-        except:
-            benchmarks[metric] = {'mean': None, 'median': None, '80th': None}
-    return benchmarks
-
 def add_percentile_columns(df, metrics):
     """Add percentile ranking columns for each metric"""
     for metric in metrics:
@@ -908,10 +890,6 @@ def get_user_weights(position, metrics):
     return {k: v / total for k, v in weight_inputs.items()}
 
 def process_player_data(df, position, metrics, normalized_weights, value_impact, league_impact):
-    """Process all player calculations and add computed columns"""
-    # Calculate benchmarks
-    benchmarks = calculate_positional_benchmarks(df, metrics)
-    
     # Add percentile columns
     df = add_percentile_columns(df, metrics)
     
@@ -961,13 +939,10 @@ def process_player_data(df, position, metrics, normalized_weights, value_impact,
     if selected_roles:
         df = df[df['Best Role'].isin(selected_roles)]
     
-    # Store benchmarks for display
-    st.session_state['benchmarks'] = benchmarks
-    
     return df
 
 def display_results(df, position, metrics):
-    """Display main results table and benchmarks"""
+    """Display main results table"""
     st.markdown(f"**Evaluating {position}** using: {', '.join(metrics)}")
     
     # Prepare display columns
@@ -986,17 +961,6 @@ def display_results(df, position, metrics):
         st.dataframe(styled_df)
     else:
         st.dataframe(df[display_cols].head(top_n))
-    
-    # Display benchmarks
-    if 'benchmarks' in st.session_state:
-        st.subheader(f"{position} Benchmarks")
-        benchmarks = st.session_state['benchmarks']
-        bm_df = pd.DataFrame(benchmarks).T.rename(columns={
-            'mean': 'Mean',
-            'median': 'Median',
-            '80th': '80th Percentile'
-        }).dropna()
-        st.dataframe(bm_df.style.format("{:.2f}"))
     
     # Download button
     st.download_button(
