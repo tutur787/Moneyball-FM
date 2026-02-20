@@ -113,7 +113,7 @@ Pull requests are welcome! For major changes, open an issue first to discuss wha
 
 ## 🌟 Author
 
-Developed by \[Your Name]. For questions or feedback, please open an issue on GitHub.
+Developed by Arthur Acker. For questions or feedback, please open an issue on GitHub.
 
 ---
 
